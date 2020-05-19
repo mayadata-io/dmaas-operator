@@ -21,10 +21,10 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// BackupSchedules returns a BackupScheduleInformer.
-	BackupSchedules() BackupScheduleInformer
-	// DMaasRestores returns a DMaasRestoreInformer.
-	DMaasRestores() DMaasRestoreInformer
+	// DMaaSBackups returns a DMaaSBackupInformer.
+	DMaaSBackups() DMaaSBackupInformer
+	// DMaaSRestores returns a DMaaSRestoreInformer.
+	DMaaSRestores() DMaaSRestoreInformer
 	// PreBackupActions returns a PreBackupActionInformer.
 	PreBackupActions() PreBackupActionInformer
 }
@@ -40,14 +40,14 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// BackupSchedules returns a BackupScheduleInformer.
-func (v *version) BackupSchedules() BackupScheduleInformer {
-	return &backupScheduleInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// DMaaSBackups returns a DMaaSBackupInformer.
+func (v *version) DMaaSBackups() DMaaSBackupInformer {
+	return &dMaaSBackupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// DMaasRestores returns a DMaasRestoreInformer.
-func (v *version) DMaasRestores() DMaasRestoreInformer {
-	return &dMaasRestoreInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// DMaaSRestores returns a DMaaSRestoreInformer.
+func (v *version) DMaaSRestores() DMaaSRestoreInformer {
+	return &dMaaSRestoreInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // PreBackupActions returns a PreBackupActionInformer.

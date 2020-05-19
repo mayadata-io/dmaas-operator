@@ -15,21 +15,21 @@ limitations under the License.
 
 package v1alpha1
 
-// BackupScheduleListerExpansion allows custom methods to be added to
-// BackupScheduleLister.
-type BackupScheduleListerExpansion interface{}
+// DMaaSBackupListerExpansion allows custom methods to be added to
+// DMaaSBackupLister.
+type DMaaSBackupListerExpansion interface{}
 
-// BackupScheduleNamespaceListerExpansion allows custom methods to be added to
-// BackupScheduleNamespaceLister.
-type BackupScheduleNamespaceListerExpansion interface{}
+// DMaaSBackupNamespaceListerExpansion allows custom methods to be added to
+// DMaaSBackupNamespaceLister.
+type DMaaSBackupNamespaceListerExpansion interface{}
 
-// DMaasRestoreListerExpansion allows custom methods to be added to
-// DMaasRestoreLister.
-type DMaasRestoreListerExpansion interface{}
+// DMaaSRestoreListerExpansion allows custom methods to be added to
+// DMaaSRestoreLister.
+type DMaaSRestoreListerExpansion interface{}
 
-// DMaasRestoreNamespaceListerExpansion allows custom methods to be added to
-// DMaasRestoreNamespaceLister.
-type DMaasRestoreNamespaceListerExpansion interface{}
+// DMaaSRestoreNamespaceListerExpansion allows custom methods to be added to
+// DMaaSRestoreNamespaceLister.
+type DMaaSRestoreNamespaceListerExpansion interface{}
 
 // PreBackupActionListerExpansion allows custom methods to be added to
 // PreBackupActionLister.

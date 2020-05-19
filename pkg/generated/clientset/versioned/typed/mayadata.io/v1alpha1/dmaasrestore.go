@@ -26,43 +26,43 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// DMaasRestoresGetter has a method to return a DMaasRestoreInterface.
+// DMaaSRestoresGetter has a method to return a DMaaSRestoreInterface.
 // A group's client should implement this interface.
-type DMaasRestoresGetter interface {
-	DMaasRestores(namespace string) DMaasRestoreInterface
+type DMaaSRestoresGetter interface {
+	DMaaSRestores(namespace string) DMaaSRestoreInterface
 }
 
-// DMaasRestoreInterface has methods to work with DMaasRestore resources.
-type DMaasRestoreInterface interface {
-	Create(*v1alpha1.DMaasRestore) (*v1alpha1.DMaasRestore, error)
-	Update(*v1alpha1.DMaasRestore) (*v1alpha1.DMaasRestore, error)
-	UpdateStatus(*v1alpha1.DMaasRestore) (*v1alpha1.DMaasRestore, error)
+// DMaaSRestoreInterface has methods to work with DMaaSRestore resources.
+type DMaaSRestoreInterface interface {
+	Create(*v1alpha1.DMaaSRestore) (*v1alpha1.DMaaSRestore, error)
+	Update(*v1alpha1.DMaaSRestore) (*v1alpha1.DMaaSRestore, error)
+	UpdateStatus(*v1alpha1.DMaaSRestore) (*v1alpha1.DMaaSRestore, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.DMaasRestore, error)
-	List(opts v1.ListOptions) (*v1alpha1.DMaasRestoreList, error)
+	Get(name string, options v1.GetOptions) (*v1alpha1.DMaaSRestore, error)
+	List(opts v1.ListOptions) (*v1alpha1.DMaaSRestoreList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.DMaasRestore, err error)
-	DMaasRestoreExpansion
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.DMaaSRestore, err error)
+	DMaaSRestoreExpansion
 }
 
-// dMaasRestores implements DMaasRestoreInterface
-type dMaasRestores struct {
+// dMaaSRestores implements DMaaSRestoreInterface
+type dMaaSRestores struct {
 	client rest.Interface
 	ns     string
 }
 
-// newDMaasRestores returns a DMaasRestores
-func newDMaasRestores(c *MayadataV1alpha1Client, namespace string) *dMaasRestores {
-	return &dMaasRestores{
+// newDMaaSRestores returns a DMaaSRestores
+func newDMaaSRestores(c *MayadataV1alpha1Client, namespace string) *dMaaSRestores {
+	return &dMaaSRestores{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the dMaasRestore, and returns the corresponding dMaasRestore object, and an error if there is any.
-func (c *dMaasRestores) Get(name string, options v1.GetOptions) (result *v1alpha1.DMaasRestore, err error) {
-	result = &v1alpha1.DMaasRestore{}
+// Get takes name of the dMaaSRestore, and returns the corresponding dMaaSRestore object, and an error if there is any.
+func (c *dMaaSRestores) Get(name string, options v1.GetOptions) (result *v1alpha1.DMaaSRestore, err error) {
+	result = &v1alpha1.DMaaSRestore{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("dmaasrestores").
@@ -73,13 +73,13 @@ func (c *dMaasRestores) Get(name string, options v1.GetOptions) (result *v1alpha
 	return
 }
 
-// List takes label and field selectors, and returns the list of DMaasRestores that match those selectors.
-func (c *dMaasRestores) List(opts v1.ListOptions) (result *v1alpha1.DMaasRestoreList, err error) {
+// List takes label and field selectors, and returns the list of DMaaSRestores that match those selectors.
+func (c *dMaaSRestores) List(opts v1.ListOptions) (result *v1alpha1.DMaaSRestoreList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
-	result = &v1alpha1.DMaasRestoreList{}
+	result = &v1alpha1.DMaaSRestoreList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("dmaasrestores").
@@ -90,8 +90,8 @@ func (c *dMaasRestores) List(opts v1.ListOptions) (result *v1alpha1.DMaasRestore
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested dMaasRestores.
-func (c *dMaasRestores) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested dMaaSRestores.
+func (c *dMaaSRestores) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,26 +105,26 @@ func (c *dMaasRestores) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Watch()
 }
 
-// Create takes the representation of a dMaasRestore and creates it.  Returns the server's representation of the dMaasRestore, and an error, if there is any.
-func (c *dMaasRestores) Create(dMaasRestore *v1alpha1.DMaasRestore) (result *v1alpha1.DMaasRestore, err error) {
-	result = &v1alpha1.DMaasRestore{}
+// Create takes the representation of a dMaaSRestore and creates it.  Returns the server's representation of the dMaaSRestore, and an error, if there is any.
+func (c *dMaaSRestores) Create(dMaaSRestore *v1alpha1.DMaaSRestore) (result *v1alpha1.DMaaSRestore, err error) {
+	result = &v1alpha1.DMaaSRestore{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("dmaasrestores").
-		Body(dMaasRestore).
+		Body(dMaaSRestore).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a dMaasRestore and updates it. Returns the server's representation of the dMaasRestore, and an error, if there is any.
-func (c *dMaasRestores) Update(dMaasRestore *v1alpha1.DMaasRestore) (result *v1alpha1.DMaasRestore, err error) {
-	result = &v1alpha1.DMaasRestore{}
+// Update takes the representation of a dMaaSRestore and updates it. Returns the server's representation of the dMaaSRestore, and an error, if there is any.
+func (c *dMaaSRestores) Update(dMaaSRestore *v1alpha1.DMaaSRestore) (result *v1alpha1.DMaaSRestore, err error) {
+	result = &v1alpha1.DMaaSRestore{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("dmaasrestores").
-		Name(dMaasRestore.Name).
-		Body(dMaasRestore).
+		Name(dMaaSRestore.Name).
+		Body(dMaaSRestore).
 		Do().
 		Into(result)
 	return
@@ -133,21 +133,21 @@ func (c *dMaasRestores) Update(dMaasRestore *v1alpha1.DMaasRestore) (result *v1a
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *dMaasRestores) UpdateStatus(dMaasRestore *v1alpha1.DMaasRestore) (result *v1alpha1.DMaasRestore, err error) {
-	result = &v1alpha1.DMaasRestore{}
+func (c *dMaaSRestores) UpdateStatus(dMaaSRestore *v1alpha1.DMaaSRestore) (result *v1alpha1.DMaaSRestore, err error) {
+	result = &v1alpha1.DMaaSRestore{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("dmaasrestores").
-		Name(dMaasRestore.Name).
+		Name(dMaaSRestore.Name).
 		SubResource("status").
-		Body(dMaasRestore).
+		Body(dMaaSRestore).
 		Do().
 		Into(result)
 	return
 }
 
-// Delete takes name of the dMaasRestore and deletes it. Returns an error if one occurs.
-func (c *dMaasRestores) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the dMaaSRestore and deletes it. Returns an error if one occurs.
+func (c *dMaaSRestores) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("dmaasrestores").
@@ -158,7 +158,7 @@ func (c *dMaasRestores) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *dMaasRestores) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *dMaaSRestores) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	var timeout time.Duration
 	if listOptions.TimeoutSeconds != nil {
 		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
@@ -173,9 +173,9 @@ func (c *dMaasRestores) DeleteCollection(options *v1.DeleteOptions, listOptions 
 		Error()
 }
 
-// Patch applies the patch and returns the patched dMaasRestore.
-func (c *dMaasRestores) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.DMaasRestore, err error) {
-	result = &v1alpha1.DMaasRestore{}
+// Patch applies the patch and returns the patched dMaaSRestore.
+func (c *dMaaSRestores) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.DMaaSRestore, err error) {
+	result = &v1alpha1.DMaaSRestore{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("dmaasrestores").

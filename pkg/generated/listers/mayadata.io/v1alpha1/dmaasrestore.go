@@ -22,64 +22,64 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// DMaasRestoreLister helps list DMaasRestores.
-type DMaasRestoreLister interface {
-	// List lists all DMaasRestores in the indexer.
-	List(selector labels.Selector) (ret []*v1alpha1.DMaasRestore, err error)
-	// DMaasRestores returns an object that can list and get DMaasRestores.
-	DMaasRestores(namespace string) DMaasRestoreNamespaceLister
-	DMaasRestoreListerExpansion
+// DMaaSRestoreLister helps list DMaaSRestores.
+type DMaaSRestoreLister interface {
+	// List lists all DMaaSRestores in the indexer.
+	List(selector labels.Selector) (ret []*v1alpha1.DMaaSRestore, err error)
+	// DMaaSRestores returns an object that can list and get DMaaSRestores.
+	DMaaSRestores(namespace string) DMaaSRestoreNamespaceLister
+	DMaaSRestoreListerExpansion
 }
 
-// dMaasRestoreLister implements the DMaasRestoreLister interface.
-type dMaasRestoreLister struct {
+// dMaaSRestoreLister implements the DMaaSRestoreLister interface.
+type dMaaSRestoreLister struct {
 	indexer cache.Indexer
 }
 
-// NewDMaasRestoreLister returns a new DMaasRestoreLister.
-func NewDMaasRestoreLister(indexer cache.Indexer) DMaasRestoreLister {
-	return &dMaasRestoreLister{indexer: indexer}
+// NewDMaaSRestoreLister returns a new DMaaSRestoreLister.
+func NewDMaaSRestoreLister(indexer cache.Indexer) DMaaSRestoreLister {
+	return &dMaaSRestoreLister{indexer: indexer}
 }
 
-// List lists all DMaasRestores in the indexer.
-func (s *dMaasRestoreLister) List(selector labels.Selector) (ret []*v1alpha1.DMaasRestore, err error) {
+// List lists all DMaaSRestores in the indexer.
+func (s *dMaaSRestoreLister) List(selector labels.Selector) (ret []*v1alpha1.DMaaSRestore, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.DMaasRestore))
+		ret = append(ret, m.(*v1alpha1.DMaaSRestore))
 	})
 	return ret, err
 }
 
-// DMaasRestores returns an object that can list and get DMaasRestores.
-func (s *dMaasRestoreLister) DMaasRestores(namespace string) DMaasRestoreNamespaceLister {
-	return dMaasRestoreNamespaceLister{indexer: s.indexer, namespace: namespace}
+// DMaaSRestores returns an object that can list and get DMaaSRestores.
+func (s *dMaaSRestoreLister) DMaaSRestores(namespace string) DMaaSRestoreNamespaceLister {
+	return dMaaSRestoreNamespaceLister{indexer: s.indexer, namespace: namespace}
 }
 
-// DMaasRestoreNamespaceLister helps list and get DMaasRestores.
-type DMaasRestoreNamespaceLister interface {
-	// List lists all DMaasRestores in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.DMaasRestore, err error)
-	// Get retrieves the DMaasRestore from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.DMaasRestore, error)
-	DMaasRestoreNamespaceListerExpansion
+// DMaaSRestoreNamespaceLister helps list and get DMaaSRestores.
+type DMaaSRestoreNamespaceLister interface {
+	// List lists all DMaaSRestores in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.DMaaSRestore, err error)
+	// Get retrieves the DMaaSRestore from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.DMaaSRestore, error)
+	DMaaSRestoreNamespaceListerExpansion
 }
 
-// dMaasRestoreNamespaceLister implements the DMaasRestoreNamespaceLister
+// dMaaSRestoreNamespaceLister implements the DMaaSRestoreNamespaceLister
 // interface.
-type dMaasRestoreNamespaceLister struct {
+type dMaaSRestoreNamespaceLister struct {
 	indexer   cache.Indexer
 	namespace string
 }
 
-// List lists all DMaasRestores in the indexer for a given namespace.
-func (s dMaasRestoreNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.DMaasRestore, err error) {
+// List lists all DMaaSRestores in the indexer for a given namespace.
+func (s dMaaSRestoreNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.DMaaSRestore, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.DMaasRestore))
+		ret = append(ret, m.(*v1alpha1.DMaaSRestore))
 	})
 	return ret, err
 }
 
-// Get retrieves the DMaasRestore from the indexer for a given namespace and name.
-func (s dMaasRestoreNamespaceLister) Get(name string) (*v1alpha1.DMaasRestore, error) {
+// Get retrieves the DMaaSRestore from the indexer for a given namespace and name.
+func (s dMaaSRestoreNamespaceLister) Get(name string) (*v1alpha1.DMaaSRestore, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
@@ -87,5 +87,5 @@ func (s dMaasRestoreNamespaceLister) Get(name string) (*v1alpha1.DMaasRestore, e
 	if !exists {
 		return nil, errors.NewNotFound(v1alpha1.Resource("dmaasrestore"), name)
 	}
-	return obj.(*v1alpha1.DMaasRestore), nil
+	return obj.(*v1alpha1.DMaaSRestore), nil
 }

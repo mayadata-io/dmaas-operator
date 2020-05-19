@@ -50,10 +50,10 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=mayadata.io, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("backupschedules"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Mayadata().V1alpha1().BackupSchedules().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("dmaasbackups"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mayadata().V1alpha1().DMaaSBackups().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("dmaasrestores"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Mayadata().V1alpha1().DMaasRestores().Informer()}, nil
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mayadata().V1alpha1().DMaaSRestores().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("prebackupactions"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Mayadata().V1alpha1().PreBackupActions().Informer()}, nil
 

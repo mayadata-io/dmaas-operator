@@ -22,8 +22,8 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DMaasRestore represents the restore resource
-type DMaasRestore struct {
+// DMaaSRestore represents the restore resource
+type DMaaSRestore struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
@@ -193,12 +193,12 @@ type PVRestoreStatusDetails struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DMaasRestoreList represents the list of DMaasRestore resource
-type DMaasRestoreList struct {
+// DMaaSRestoreList represents the list of DMaaSRestore resource
+type DMaaSRestoreList struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ListMeta `json:"metadata.omitempty"`
 
-	Items []DMaasRestore `json:"items"`
+	Items []DMaaSRestore `json:"items"`
 }

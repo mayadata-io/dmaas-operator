@@ -15,8 +15,8 @@ limitations under the License.
 
 package v1alpha1
 
-type BackupScheduleExpansion interface{}
+type DMaaSBackupExpansion interface{}
 
-type DMaasRestoreExpansion interface{}
+type DMaaSRestoreExpansion interface{}
 
 type PreBackupActionExpansion interface{}

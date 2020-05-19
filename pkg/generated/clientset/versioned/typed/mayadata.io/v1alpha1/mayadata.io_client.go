@@ -23,8 +23,8 @@ import (
 
 type MayadataV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	BackupSchedulesGetter
-	DMaasRestoresGetter
+	DMaaSBackupsGetter
+	DMaaSRestoresGetter
 	PreBackupActionsGetter
 }
 
@@ -33,12 +33,12 @@ type MayadataV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *MayadataV1alpha1Client) BackupSchedules(namespace string) BackupScheduleInterface {
-	return newBackupSchedules(c, namespace)
+func (c *MayadataV1alpha1Client) DMaaSBackups(namespace string) DMaaSBackupInterface {
+	return newDMaaSBackups(c, namespace)
 }
 
-func (c *MayadataV1alpha1Client) DMaasRestores(namespace string) DMaasRestoreInterface {
-	return newDMaasRestores(c, namespace)
+func (c *MayadataV1alpha1Client) DMaaSRestores(namespace string) DMaaSRestoreInterface {
+	return newDMaaSRestores(c, namespace)
 }
 
 func (c *MayadataV1alpha1Client) PreBackupActions(namespace string) PreBackupActionInterface {

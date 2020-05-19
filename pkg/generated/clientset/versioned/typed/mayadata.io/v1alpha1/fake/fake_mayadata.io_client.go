@@ -25,12 +25,12 @@ type FakeMayadataV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeMayadataV1alpha1) BackupSchedules(namespace string) v1alpha1.BackupScheduleInterface {
-	return &FakeBackupSchedules{c, namespace}
+func (c *FakeMayadataV1alpha1) DMaaSBackups(namespace string) v1alpha1.DMaaSBackupInterface {
+	return &FakeDMaaSBackups{c, namespace}
 }
 
-func (c *FakeMayadataV1alpha1) DMaasRestores(namespace string) v1alpha1.DMaasRestoreInterface {
-	return &FakeDMaasRestores{c, namespace}
+func (c *FakeMayadataV1alpha1) DMaaSRestores(namespace string) v1alpha1.DMaaSRestoreInterface {
+	return &FakeDMaaSRestores{c, namespace}
 }
 
 func (c *FakeMayadataV1alpha1) PreBackupActions(namespace string) v1alpha1.PreBackupActionInterface {

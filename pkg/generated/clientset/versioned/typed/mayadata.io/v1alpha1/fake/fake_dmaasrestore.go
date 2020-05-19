@@ -25,31 +25,31 @@ import (
 	testing "k8s.io/client-go/testing"
 )
 
-// FakeDMaasRestores implements DMaasRestoreInterface
-type FakeDMaasRestores struct {
+// FakeDMaaSRestores implements DMaaSRestoreInterface
+type FakeDMaaSRestores struct {
 	Fake *FakeMayadataV1alpha1
 	ns   string
 }
 
 var dmaasrestoresResource = schema.GroupVersionResource{Group: "mayadata.io", Version: "v1alpha1", Resource: "dmaasrestores"}
 
-var dmaasrestoresKind = schema.GroupVersionKind{Group: "mayadata.io", Version: "v1alpha1", Kind: "DMaasRestore"}
+var dmaasrestoresKind = schema.GroupVersionKind{Group: "mayadata.io", Version: "v1alpha1", Kind: "DMaaSRestore"}
 
-// Get takes name of the dMaasRestore, and returns the corresponding dMaasRestore object, and an error if there is any.
-func (c *FakeDMaasRestores) Get(name string, options v1.GetOptions) (result *v1alpha1.DMaasRestore, err error) {
+// Get takes name of the dMaaSRestore, and returns the corresponding dMaaSRestore object, and an error if there is any.
+func (c *FakeDMaaSRestores) Get(name string, options v1.GetOptions) (result *v1alpha1.DMaaSRestore, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(dmaasrestoresResource, c.ns, name), &v1alpha1.DMaasRestore{})
+		Invokes(testing.NewGetAction(dmaasrestoresResource, c.ns, name), &v1alpha1.DMaaSRestore{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.DMaasRestore), err
+	return obj.(*v1alpha1.DMaaSRestore), err
 }
 
-// List takes label and field selectors, and returns the list of DMaasRestores that match those selectors.
-func (c *FakeDMaasRestores) List(opts v1.ListOptions) (result *v1alpha1.DMaasRestoreList, err error) {
+// List takes label and field selectors, and returns the list of DMaaSRestores that match those selectors.
+func (c *FakeDMaaSRestores) List(opts v1.ListOptions) (result *v1alpha1.DMaaSRestoreList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(dmaasrestoresResource, dmaasrestoresKind, c.ns, opts), &v1alpha1.DMaasRestoreList{})
+		Invokes(testing.NewListAction(dmaasrestoresResource, dmaasrestoresKind, c.ns, opts), &v1alpha1.DMaaSRestoreList{})
 
 	if obj == nil {
 		return nil, err
@@ -59,8 +59,8 @@ func (c *FakeDMaasRestores) List(opts v1.ListOptions) (result *v1alpha1.DMaasRes
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.DMaasRestoreList{ListMeta: obj.(*v1alpha1.DMaasRestoreList).ListMeta}
-	for _, item := range obj.(*v1alpha1.DMaasRestoreList).Items {
+	list := &v1alpha1.DMaaSRestoreList{ListMeta: obj.(*v1alpha1.DMaaSRestoreList).ListMeta}
+	for _, item := range obj.(*v1alpha1.DMaaSRestoreList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -68,70 +68,70 @@ func (c *FakeDMaasRestores) List(opts v1.ListOptions) (result *v1alpha1.DMaasRes
 	return list, err
 }
 
-// Watch returns a watch.Interface that watches the requested dMaasRestores.
-func (c *FakeDMaasRestores) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested dMaaSRestores.
+func (c *FakeDMaaSRestores) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(dmaasrestoresResource, c.ns, opts))
 
 }
 
-// Create takes the representation of a dMaasRestore and creates it.  Returns the server's representation of the dMaasRestore, and an error, if there is any.
-func (c *FakeDMaasRestores) Create(dMaasRestore *v1alpha1.DMaasRestore) (result *v1alpha1.DMaasRestore, err error) {
+// Create takes the representation of a dMaaSRestore and creates it.  Returns the server's representation of the dMaaSRestore, and an error, if there is any.
+func (c *FakeDMaaSRestores) Create(dMaaSRestore *v1alpha1.DMaaSRestore) (result *v1alpha1.DMaaSRestore, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(dmaasrestoresResource, c.ns, dMaasRestore), &v1alpha1.DMaasRestore{})
+		Invokes(testing.NewCreateAction(dmaasrestoresResource, c.ns, dMaaSRestore), &v1alpha1.DMaaSRestore{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.DMaasRestore), err
+	return obj.(*v1alpha1.DMaaSRestore), err
 }
 
-// Update takes the representation of a dMaasRestore and updates it. Returns the server's representation of the dMaasRestore, and an error, if there is any.
-func (c *FakeDMaasRestores) Update(dMaasRestore *v1alpha1.DMaasRestore) (result *v1alpha1.DMaasRestore, err error) {
+// Update takes the representation of a dMaaSRestore and updates it. Returns the server's representation of the dMaaSRestore, and an error, if there is any.
+func (c *FakeDMaaSRestores) Update(dMaaSRestore *v1alpha1.DMaaSRestore) (result *v1alpha1.DMaaSRestore, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(dmaasrestoresResource, c.ns, dMaasRestore), &v1alpha1.DMaasRestore{})
+		Invokes(testing.NewUpdateAction(dmaasrestoresResource, c.ns, dMaaSRestore), &v1alpha1.DMaaSRestore{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.DMaasRestore), err
+	return obj.(*v1alpha1.DMaaSRestore), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeDMaasRestores) UpdateStatus(dMaasRestore *v1alpha1.DMaasRestore) (*v1alpha1.DMaasRestore, error) {
+func (c *FakeDMaaSRestores) UpdateStatus(dMaaSRestore *v1alpha1.DMaaSRestore) (*v1alpha1.DMaaSRestore, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(dmaasrestoresResource, "status", c.ns, dMaasRestore), &v1alpha1.DMaasRestore{})
+		Invokes(testing.NewUpdateSubresourceAction(dmaasrestoresResource, "status", c.ns, dMaaSRestore), &v1alpha1.DMaaSRestore{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.DMaasRestore), err
+	return obj.(*v1alpha1.DMaaSRestore), err
 }
 
-// Delete takes name of the dMaasRestore and deletes it. Returns an error if one occurs.
-func (c *FakeDMaasRestores) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the dMaaSRestore and deletes it. Returns an error if one occurs.
+func (c *FakeDMaaSRestores) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(dmaasrestoresResource, c.ns, name), &v1alpha1.DMaasRestore{})
+		Invokes(testing.NewDeleteAction(dmaasrestoresResource, c.ns, name), &v1alpha1.DMaaSRestore{})
 
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeDMaasRestores) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *FakeDMaaSRestores) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(dmaasrestoresResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &v1alpha1.DMaasRestoreList{})
+	_, err := c.Fake.Invokes(action, &v1alpha1.DMaaSRestoreList{})
 	return err
 }
 
-// Patch applies the patch and returns the patched dMaasRestore.
-func (c *FakeDMaasRestores) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.DMaasRestore, err error) {
+// Patch applies the patch and returns the patched dMaaSRestore.
+func (c *FakeDMaaSRestores) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.DMaaSRestore, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(dmaasrestoresResource, c.ns, name, pt, data, subresources...), &v1alpha1.DMaasRestore{})
+		Invokes(testing.NewPatchSubresourceAction(dmaasrestoresResource, c.ns, name, pt, data, subresources...), &v1alpha1.DMaaSRestore{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.DMaasRestore), err
+	return obj.(*v1alpha1.DMaaSRestore), err
 }

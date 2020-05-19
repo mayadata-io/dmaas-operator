@@ -22,23 +22,23 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// BackupSchedule represents the BackBackupSchedule resource
-type BackupSchedule struct {
+// DMaaSBackup represents the backup/schedule resource
+type DMaaSBackup struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ObjectMeta `json:"metadata.omitempty"`
 
 	// +optional
-	Spec BackupScheduleSpec `json:"spec"`
+	Spec DMaaSBackupSpec `json:"spec"`
 
 	// +optional
-	Status BackupScheduleStatus `json:"status"`
+	Status DMaaSBackupStatus `json:"status"`
 }
 
-// BackupScheduleSpec defines the spec for BacBackupSchedule resource
-type BackupScheduleSpec struct {
-	// State defines if given BacBackupSchedule is active or not
+// DMaaSBackupSpec defines the spec for DMaaSBackup resource
+type DMaaSBackupSpec struct {
+	// State defines if given DMaaSBackup is active or not
 	// Default value is Active
 	// +optional
 	// +nullable
@@ -69,40 +69,40 @@ type PeriodicFullBackupConfig struct {
 	FullBackupRetentionThreshold int `json:"fullBackupRetentionThreshold"`
 }
 
-// BackupSchedulePhase represents the phase of BackupSchedule
-type BackupSchedulePhase string
+// DMaaSBackupPhase represents the phase of DMaaSBackup
+type DMaaSBackupPhase string
 
 const (
-	// BackupSchedulePhaseInProgress represents the in progress phase of BackupSchedule
-	BackupSchedulePhaseInProgress BackupSchedulePhase = "InProgress"
+	// DMaaSBackupPhaseInProgress represents the in progress phase of DMaaSBackup
+	DMaaSBackupPhaseInProgress DMaaSBackupPhase = "InProgress"
 
-	// BackupSchedulePhasePaused represents the pause phase of BackupSchedule
-	BackupSchedulePhasePaused BackupSchedulePhase = "Paused"
+	// DMaaSBackupPhasePaused represents the pause phase of DMaaSBackup
+	DMaaSBackupPhasePaused DMaaSBackupPhase = "Paused"
 
-	// BackupSchedulePhaseActive represents the active phase of BackupSchedule
-	BackupSchedulePhaseActive BackupSchedulePhase = "Active"
+	// DMaaSBackupPhaseActive represents the active phase of DMaaSBackup
+	DMaaSBackupPhaseActive DMaaSBackupPhase = "Active"
 )
 
-// BackupScheduleStatus represents the status of BackupSchedule resource
-type BackupScheduleStatus struct {
-	// Phase represents the current phase of BackupSchedule
-	Phase BackupSchedulePhase `json:"phase"`
+// DMaaSBackupStatus represents the status of DMaaSBackup resource
+type DMaaSBackupStatus struct {
+	// Phase represents the current phase of DMaaSBackup
+	Phase DMaaSBackupPhase `json:"phase"`
 
-	// Reason represents the cause of failure in BackupSchedule
+	// Reason represents the cause of failure in DMaaSBackup
 	Reason string `json:"reason,omitempty"`
 
-	// Message represents the cause/action/outcome of BackupSchedule
+	// Message represents the cause/action/outcome of DMaaSBackup
 	Message string `json:"message,omitempty"`
 
-	// VeleroSchedules represents the list of Velero Schedule created by BackupSchedule
+	// VeleroSchedules represents the list of Velero Schedule created by DMaaSBackup
 	// +nullable
 	VeleroSchedules []VeleroScheduleDetails `json:"veleroSchedules,omitempty"`
 
-	// VeleroBackupName represents the name of Velero Backup, created by BackupSchedule,
+	// VeleroBackupName represents the name of Velero Backup, created by DMaaSBackup,
 	// if VeleroScheduleSpec is having empty schedule
 	VeleroBackupName string `json:"veleroBackupName,omitempty"`
 
-	// LatestBackupStatus represents the status of latest backup created by BackupSchedule
+	// LatestBackupStatus represents the status of latest backup created by DMaaSBackup
 	LatestBackupStatus LatestBackupStatusDetails `json:"latestBackukpStatus,omitempty"`
 }
 
@@ -201,12 +201,12 @@ type Progress struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// BackupScheduleList represents the list of BackBackupSchedule resource
-type BackupScheduleList struct {
+// DMaaSBackupList represents the list of DMaaSBackup resource
+type DMaaSBackupList struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ListMeta `json:"metadata.omitempty"`
 
-	Items []BackupSchedule `json:"items"`
+	Items []DMaaSBackup `json:"items"`
 }

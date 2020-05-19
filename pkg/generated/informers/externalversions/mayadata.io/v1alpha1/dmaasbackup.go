@@ -28,59 +28,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// DMaaSRestoreInformer provides access to a shared informer and lister for
-// DMaaSRestores.
-type DMaaSRestoreInformer interface {
+// DMaaSBackupInformer provides access to a shared informer and lister for
+// DMaaSBackups.
+type DMaaSBackupInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.DMaaSRestoreLister
+	Lister() v1alpha1.DMaaSBackupLister
 }
 
-type dMaaSRestoreInformer struct {
+type dMaaSBackupInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewDMaaSRestoreInformer constructs a new informer for DMaaSRestore type.
+// NewDMaaSBackupInformer constructs a new informer for DMaaSBackup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewDMaaSRestoreInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredDMaaSRestoreInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewDMaaSBackupInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredDMaaSBackupInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredDMaaSRestoreInformer constructs a new informer for DMaaSRestore type.
+// NewFilteredDMaaSBackupInformer constructs a new informer for DMaaSBackup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredDMaaSRestoreInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredDMaaSBackupInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MayadataV1alpha1().DMaaSRestores(namespace).List(options)
+				return client.MayadataV1alpha1().DMaaSBackups(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.MayadataV1alpha1().DMaaSRestores(namespace).Watch(options)
+				return client.MayadataV1alpha1().DMaaSBackups(namespace).Watch(options)
 			},
 		},
-		&mayadataiov1alpha1.DMaaSRestore{},
+		&mayadataiov1alpha1.DMaaSBackup{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *dMaaSRestoreInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredDMaaSRestoreInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *dMaaSBackupInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredDMaaSBackupInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *dMaaSRestoreInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&mayadataiov1alpha1.DMaaSRestore{}, f.defaultInformer)
+func (f *dMaaSBackupInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&mayadataiov1alpha1.DMaaSBackup{}, f.defaultInformer)
 }
 
-func (f *dMaaSRestoreInformer) Lister() v1alpha1.DMaaSRestoreLister {
-	return v1alpha1.NewDMaaSRestoreLister(f.Informer().GetIndexer())
+func (f *dMaaSBackupInformer) Lister() v1alpha1.DMaaSBackupLister {
+	return v1alpha1.NewDMaaSBackupLister(f.Informer().GetIndexer())
 }
