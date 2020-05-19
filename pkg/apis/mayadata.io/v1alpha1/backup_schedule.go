@@ -24,7 +24,7 @@ import (
 
 // BackupSchedule represents the BackBackupSchedule resource
 type BackupSchedule struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ObjectMeta `json:"metadata.omitempty"`
@@ -203,7 +203,7 @@ type Progress struct {
 
 // BackupScheduleList represents the list of BackBackupSchedule resource
 type BackupScheduleList struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ListMeta `json:"metadata.omitempty"`

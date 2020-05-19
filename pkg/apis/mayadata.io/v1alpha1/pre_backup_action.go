@@ -22,7 +22,7 @@ import (
 
 // PreBackupAction represents the pre-backup action for DMaaS
 type PreBackupAction struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ObjectMeta `json:"metadata.omitempty"`
@@ -133,7 +133,7 @@ type PreBackupActionStatus struct {
 
 // PreBackupActionList represents the list of PreBackupAction resource
 type PreBackupActionList struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ListMeta `json:"metadata.omitempty"`

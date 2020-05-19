@@ -24,7 +24,7 @@ import (
 
 // DMaasRestore represents the restore resource
 type DMaasRestore struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ObjectMeta `json:"metadata.omitempty"`
@@ -195,7 +195,7 @@ type PVRestoreStatusDetails struct {
 
 // DMaasRestoreList represents the list of DMaasRestore resource
 type DMaasRestoreList struct {
-	metav1.TypeMeta `json:"inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// +optional
 	metav1.ListMeta `json:"metadata.omitempty"`
