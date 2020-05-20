@@ -30,3 +30,10 @@ ${GOPATH}/src/k8s.io/code-generator/generate-groups.sh all \
 	"mayadata.io:v1alpha1" \
 	--output-base ../../..	\
 	--go-header-file ./hack/boilerplate.go.txt
+
+controller-gen \
+	crd:crdVersions=v1beta1,preserveUnknownFields=false,trivialVersions=true \
+	output:dir=./pkg/generated/crds/manifests \
+	paths=./pkg/apis/mayadata.io/v1alpha1/...
+
+#go-bindata -ignore=\\.go  -o pkg/generated/crds/bindata.go -pkg crds ./pkg/generated/crds/manifests/...

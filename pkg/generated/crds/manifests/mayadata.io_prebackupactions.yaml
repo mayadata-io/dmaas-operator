@@ -1,0 +1,253 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: prebackupactions.mayadata.io
+spec:
+  group: mayadata.io
+  names:
+    kind: PreBackupAction
+    listKind: PreBackupActionList
+    plural: prebackupactions
+    singular: prebackupaction
+  preserveUnknownFields: false
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: PreBackupAction represents the pre-backup action for DMaaS
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata.omitempty:
+          type: object
+        spec:
+          description: PreBackupActionSpec represents the list of action to be executed
+            prior to back up
+          properties:
+            oneTimeAction:
+              description: OneTimeAction specify if this PrePreBackupAction needs
+                to be executed periodically or not - If true, action will be taken
+                until it becomes success, marks Phase as Completed and stops further
+                action. - If false, action will be taken in regular intervals, leaving
+                Phase as InProgress. Default is false
+              type: boolean
+            setAnnotation:
+              description: SetAnnotation defines the list of annotation to be applied
+                on resources
+              properties:
+                excludeResourceList:
+                  description: IncludeResourceList is list of resources not to be
+                    annotated
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  nullable: true
+                  type: array
+                includeResourceList:
+                  description: IncludeResourceList is list of resources to be annotated
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  type: array
+              required:
+              - includeResourceList
+              type: object
+            setLabel:
+              description: SetLabel defines the list of labels to be applied to resources
+              properties:
+                excludeResourceList:
+                  description: ExcludeResourceList is list of resources, need not
+                    to be labeled
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  nullable: true
+                  type: array
+                includeResourceList:
+                  description: IncludeResourceList is list of resource, need to be
+                    labeled
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  type: array
+                labels:
+                  description: Labels contains list of label to be set on specified
+                    resources
+                  items:
+                    type: string
+                  type: array
+              required:
+              - includeResourceList
+              - labels
+              type: object
+          type: object
+        status:
+          description: PreBackupActionStatus defines the status of PreBackupAction
+            resource
+          properties:
+            lastFailureTimestamp:
+              description: LastFailureTimeStamp represents the time when PreBackupAction
+                failed
+              format: date-time
+              nullable: true
+              type: string
+            lastSuccessfulTimestamp:
+              description: LastSuccessfulTime represents the time when PreBackupAction
+                executed successfully
+              format: date-time
+              nullable: true
+              type: string
+            phase:
+              description: Phase defines the PreBackupAction stage
+              type: string
+            updatedAnnotatedList:
+              description: UpdatedAnnotatedList represents the list of resources annotated
+                successfully
+              items:
+                description: TargetResource represents the k8s resource information
+                  used for pre-backup action
+                properties:
+                  apiversion:
+                    description: APIVersion of the resource
+                    type: string
+                  kind:
+                    description: Kind of the resource
+                    type: string
+                  name:
+                    description: Name of the resource
+                    items:
+                      type: string
+                    type: array
+                  namespace:
+                    description: Namespace of the resource
+                    type: string
+                required:
+                - kind
+                type: object
+              nullable: true
+              type: array
+            updatedSelectedList:
+              description: UpdatedSelectedList represents the list of resources labeled
+                successfully
+              items:
+                description: TargetResource represents the k8s resource information
+                  used for pre-backup action
+                properties:
+                  apiversion:
+                    description: APIVersion of the resource
+                    type: string
+                  kind:
+                    description: Kind of the resource
+                    type: string
+                  name:
+                    description: Name of the resource
+                    items:
+                      type: string
+                    type: array
+                  namespace:
+                    description: Namespace of the resource
+                    type: string
+                required:
+                - kind
+                type: object
+              nullable: true
+              type: array
+          required:
+          - phase
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null
