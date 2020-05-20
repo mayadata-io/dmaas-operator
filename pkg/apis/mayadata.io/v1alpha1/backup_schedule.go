@@ -154,24 +154,16 @@ type LatestBackupStatusDetails struct {
 	SnapshotStatus []SnapshotStatusDetails `json:"snapshotStatus,omitempty"`
 }
 
-// SnapshotType defines the type of snapshot
-type SnapshotType string
-
-const (
-	// SnapshotTypeRestic represents the restic base snapshot
-	SnapshotTypeRestic SnapshotType = "Restic"
-
-	// SnapshotTypeCStor represents the cstor base snapshot
-	SnapshotTypeCStor SnapshotType = "cStor"
-)
-
 // SnapshotStatusDetails represents the snapshot information and it's status
 type SnapshotStatusDetails struct {
 	// SnapshotID represents the ID of the snapshot
 	SnapshotID string `json:"snapshotID"`
 
+	// PVName represents the PV name on which snapshot is created
+	PVName string `json:"pvName"`
+
 	// Type represents the type of snapshot
-	Type SnapshotType `json:"snapshotType"`
+	Type string `json:"snapshotType"`
 
 	// Phase represents the phase of PodVolumeBackup or CStorBackup resource
 	Phase string `json:"phase"`

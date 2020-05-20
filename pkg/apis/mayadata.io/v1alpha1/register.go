@@ -56,9 +56,9 @@ func newTypeInfo(pluralName string, itemType, itemListType runtime.Object) typeI
 // API group, keyed on Kind.
 func CustomResources() map[string]typeInfo {
 	return map[string]typeInfo{
-		"BackupSchedule":  newTypeInfo("backupsheduleds", &BackupSchedule{}, &BackupScheduleList{}),
-		"PreBackupAction": newTypeInfo("prebackupaction", &PreBackupAction{}, &PreBackupActionList{}),
-		"DMaasRestore":    newTypeInfo("dmaasrestore", &DMaasRestore{}, &DMaasRestoreList{}),
+		"DMaaSBackup":     newTypeInfo("dmaasbackups", &DMaaSBackup{}, &DMaaSBackupList{}),
+		"PreBackupAction": newTypeInfo("prebackupactions", &PreBackupAction{}, &PreBackupActionList{}),
+		"DMaaSRestore":    newTypeInfo("dmaasrestores", &DMaaSRestore{}, &DMaaSRestoreList{}),
 	}
 }
 

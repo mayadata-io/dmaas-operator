@@ -96,14 +96,14 @@ type TargetResource struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// PreBackupActionPhase reprensets the phase of prePreBackupAction
+// PreBackupActionPhase represents the phase of prePreBackupAction
 type PreBackupActionPhase string
 
 const (
-	// PreBackupActionPhaseInProgress reprensets the in progress phase of PreBackupAction
+	// PreBackupActionPhaseInProgress represents the in progress phase of PreBackupAction
 	PreBackupActionPhaseInProgress PreBackupActionPhase = "InProgress"
 
-	// PreBackupActionPhaseCompleted reprensets the in completed phase of PreBackupAction
+	// PreBackupActionPhaseCompleted represents the in completed phase of PreBackupAction
 	PreBackupActionPhaseCompleted PreBackupActionPhase = "Completed"
 )
 

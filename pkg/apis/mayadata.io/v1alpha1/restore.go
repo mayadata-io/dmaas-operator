@@ -46,7 +46,7 @@ type RestoreSpec struct {
 	// +optional
 	BackupScheduleName string `json:"backupScheduleName,omitempty"`
 
-	// OpenEBSNamespace represents the nsamespace in which openebs is installed
+	// OpenEBSNamespace represents the namespace in which openebs is installed
 	OpenEBSNamespace string `json:"openebsNamespace"`
 
 	// RestoreSpec defines the spec for velero restore resource
@@ -124,7 +124,7 @@ type RestoreCondition struct {
 	// Status defines the status of Condition, True or False
 	Status corev1.ConditionStatus `json:"status"`
 
-	// LastUpdatedTime represents the last updation time of condition
+	// LastUpdatedTime represents the last update time of condition
 	// +nullable
 	LastUpdatedTime *metav1.Time `json:"lastUpdatedTime,omitempty"`
 
@@ -169,8 +169,11 @@ type PVRestoreStatusDetails struct {
 	// SnapshotID is snapshotID from which restore started
 	SnapshotID string `json:"snapshotID"`
 
+	// PVName is pv name on which snapshot is restored
+	PVName string `json:"pvName"`
+
 	// Type defines the snapshot type
-	Type SnapshotType `json:"snapshotType"`
+	Type string `json:"snapshotType"`
 
 	// Phase represents the restore phase of snapshot
 	Phase string `json:"phase"`
