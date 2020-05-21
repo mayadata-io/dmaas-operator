@@ -36,4 +36,6 @@ controller-gen \
 	output:dir=./pkg/generated/crds/manifests \
 	paths=./pkg/apis/mayadata.io/v1alpha1/...
 
-#go-bindata -ignore=\\.go  -o pkg/generated/crds/bindata.go -pkg crds ./pkg/generated/crds/manifests/...
+#copy generated CRDs to deploy/crds
+rm -rf deploy/crds
+cp -a pkg/generated/crds/manifests deploy/crds
