@@ -85,11 +85,6 @@ func NewCmdServer(c Config) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			logger := newLogger(opts)
 
-			if lvl, err := logrus.ParseLevel(opts.logLevel); err != nil {
-				logrus.Errorf("Invalid log-level value, using default value")
-			} else {
-				logger.Level = lvl
-			}
 
 			logger.Infof("DMaaS operator started")
 		},
