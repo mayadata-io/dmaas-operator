@@ -1,0 +1,13 @@
+# Folders
+_obj
+_test
+_output
+.idea/
+
+.container-*
+.vimrc
+.go
+.DS_Store
+.vscode
+*.diff
+
