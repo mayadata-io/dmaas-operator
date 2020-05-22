@@ -25,11 +25,14 @@ import (
 )
 
 const (
-	// defaultOpenebsNS default openebs namespace
-	defaultOpenebsNS string = "openebs"
+	// envDMaaSNamespaceKey environment variable for dmaas-operator namespace
+	envDMaaSNamespaceKey string = "NAMESPACE"
 
-	// defaultVeleroNs default velero namespace
-	defaultVeleroNs string = "velero"
+	// envOpenebsNamespaceKey environment variable for openebs namespace
+	envOpenebsNamespaceKey string = "OPENEBS_NAMESPACE"
+
+	// envVeleroNamespaceKey environment variable for velero namespace
+	envVeleroNamespaceKey string = "VELERO_NAMESPACE"
 
 	// defaultClientQPS for dmaas-operator
 	defaultClientQPS float32 = 20.0
@@ -47,9 +50,12 @@ type serverOpts struct {
 }
 
 func newServerOpts() *serverOpts {
+	openebsNs := os.Getenv(envOpenebsNamespaceKey)
+	veleroNs := os.Getenv(envVeleroNamespaceKey)
+
 	return &serverOpts{
-		openebsNamespace: defaultOpenebsNS,
-		veleroNamespace:  defaultVeleroNs,
+		openebsNamespace: openebsNs,
+		veleroNamespace:  veleroNs,
 		clientBurst:      defaultClientBurst,
 		clientQPS:        defaultClientQPS,
 		logLevel:         logrus.InfoLevel.String(),
@@ -84,7 +90,6 @@ func NewCmdServer(c Config) *cobra.Command {
 
 		Run: func(cmd *cobra.Command, args []string) {
 			logger := newLogger(opts)
-
 
 			logger.Infof("DMaaS operator started")
 		},

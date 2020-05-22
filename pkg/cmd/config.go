@@ -14,6 +14,8 @@ limitations under the License.
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/pflag"
 
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
@@ -53,7 +55,7 @@ func NewConfig() Config {
 		flags: pflag.NewFlagSet("", pflag.ContinueOnError),
 	}
 
-	c.namespace = "dmaas"
+	c.namespace = os.Getenv(envDMaaSNamespaceKey)
 
 	c.flags.StringVar(&c.kubeconfig,
 		"kubeconfig",
