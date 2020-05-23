@@ -12,13 +12,17 @@
 
 set -e
 
+FILE_LIST=$(mktemp)
 echo ">> checking license header"
-licRes=$$(for file in $$(find . -type f -iname '*.go' ! -path './vendor/*' ! -path './pkg/debug/*' ) ; do \
-		awk 'NR<=3' $$file | grep -Eq "(Copyright|generated|GENERATED)" || echo $$file; \
-	done);
-if [ -n "$${licRes}" ]; then
-	echo "license header checking failed:"
-	echo "$${licRes}"
+for file in $(find . -type f -iname '*.go') ; do
+	awk 'NR<=3' $file | grep -Eq "(Copyright|generated|GENERATED)" || echo $file >> $FILE_LIST
+done
+
+if [ $(cat $FILE_LIST |wc -l) -ne 0 ]; then
+	echo "license header checking failed. Following files doesn't have license"
+	cat $FILE_LIST
+	rm $FILE_LIST
 	exit 1
 fi
+rm $FILE_LIST
 

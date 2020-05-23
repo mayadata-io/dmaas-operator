@@ -9,9 +9,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# repo's import path
+PACKAGE=github.com/mayadata-io/dmaas-operator
+
+git_branch := $(shell git rev-parse --abbrev-ref HEAD)
+git_tag := $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
+
+VERSION ?= $(if $(git_tag),$(git_tag),$(git_branch))
+
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+
+build-dirs:
+	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)
+
+build: build-dirs
+	GOOS=$(GOOS) \
+	GOARCH=$(GOARCH) \
+	VERSION=$(VERSION) \
+	PACKAGE=$(PACKAGE) \
+	OUTPUT_DIR=$$(pwd)/_output/bin/$(GOOS)/$(GOARCH) \
+	./hack/build.sh
+
 clean:
 	@rm -rf .go _output
 
 update:
 	@hack/verify-update.sh
-
+	@hack/check-license.sh
