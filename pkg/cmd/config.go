@@ -20,6 +20,7 @@ import (
 
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
 	"github.com/pkg/errors"
+	velero "github.com/vmware-tanzu/velero/pkg/generated/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,14 +30,22 @@ import (
 type Config interface {
 	// BindFlags binds common flags (--kubeconfig, --namespace) to the passed-in FlagSet.
 	BindFlags(flags *pflag.FlagSet)
+
 	// Client returns dmaas-operator client.
 	Client() (clientset.Interface, error)
+
 	// KubeClient returns Kubernetes client.
 	KubeClient() (kubernetes.Interface, error)
+
+	// VeleroClient return velero client.
+	VeleroClient() (velero.Interface, error)
+
 	// SetClientQPS sets the Queries Per Second for a client.
-	SetClientQPS(float32)
+	SetClientQPS(float32) error
+
 	// SetClientBurst sets the Burst for a client.
-	SetClientBurst(int)
+	SetClientBurst(int) error
+
 	// GetNamespace return dmaas namespace
 	GetNamespace() string
 }
@@ -81,7 +90,7 @@ func (c *config) BindFlags(flags *pflag.FlagSet) {
 func (c *config) ClientConfig() (*rest.Config, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	loadingRules.ExplicitPath = c.kubeconfig
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, nil)
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
 
 	clientConfig, err := kubeConfig.ClientConfig()
 	if err != nil {
@@ -127,14 +136,36 @@ func (c *config) KubeClient() (kubernetes.Interface, error) {
 	return kubeClient, nil
 }
 
+// VeleroClient return clientset to access velero resources
+func (c *config) VeleroClient() (velero.Interface, error) {
+	clientConfig, err := c.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	veleroClient, err := velero.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return veleroClient, nil
+}
+
 // SetClientQPS set given qps value to config
-func (c *config) SetClientQPS(qps float32) {
+func (c *config) SetClientQPS(qps float32) error {
+	if qps < 0.0 {
+		return errors.New("client qps must be greater than 0.0")
+	}
 	c.clientQPS = qps
+	return nil
 }
 
 // SetClientBurst set given burst value to config
-func (c *config) SetClientBurst(burst int) {
+func (c *config) SetClientBurst(burst int) error {
+	if burst <= 0 {
+		return errors.New("client burst must be greater than 0")
+	}
 	c.clientBurst = burst
+	return nil
 }
 
 // GetNamespace return the namespace of dmaas-operator
