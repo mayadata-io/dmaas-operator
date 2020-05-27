@@ -65,19 +65,18 @@ func NewDMaaSBackupController(
 
 	c.reconcile = c.processBackup
 	c.syncPeriod = backupSyncPeriod
-	c.destroy = c.destroyBackup
 
 	dmaasBackupInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				c.enqueue(obj, qOpSync)
+				c.enqueue(obj)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				_ = oldObj
-				c.enqueue(newObj, qOpSync)
+				c.enqueue(newObj)
 			},
 			DeleteFunc: func(obj interface{}) {
-				c.enqueue(obj, qOpDestroy)
+				c.enqueue(obj)
 			},
 		},
 	)
@@ -85,17 +84,8 @@ func NewDMaaSBackupController(
 }
 
 func (d *dmaasBackupController) processBackup(key string) error {
-	log := d.logger.WithField("key", key).WithField("operation", "sync")
+	log := d.logger.WithField("key", key)
 
 	log.Infof("processing backup")
-
-	return nil
-}
-
-func (d *dmaasBackupController) destroyBackup(key string) error {
-	log := d.logger.WithField("key", key).WithField("operation", "delete")
-
-	log.Infof("deleting backup")
-
 	return nil
 }

@@ -44,28 +44,10 @@ type controller struct {
 	// reconcile is main function, which process the event
 	reconcile func(key string) error
 
-	// destroy is function to be executed for deletion of object
-	destroy func(key string) error
-
 	// controller syncPeriod
 	syncPeriod time.Duration
 
 	cacheSyncWaiters []cache.InformerSynced
-}
-
-// queueOperation represents the type of operation on workQueueLoad
-type queueOperation string
-
-// Different type of operations on the workQueueLoad
-const (
-	qOpDestroy queueOperation = "destroy"
-	qOpSync    queueOperation = "sync"
-)
-
-// workQueueLoad is for storing the key and type of operation before entering workqueue
-type workQueueLoad struct {
-	key       string // Key is the name of the object
-	operation queueOperation
 }
 
 func newController(name string, logger logrus.FieldLogger, numWorker int) *controller {
@@ -78,10 +60,12 @@ func newController(name string, logger logrus.FieldLogger, numWorker int) *contr
 }
 
 func (c *controller) Run(ctx context.Context) error {
+	// check if controller implemented reconcile function or not
 	if c.reconcile == nil {
 		return errors.Errorf("no reconcile function provided")
 	}
 
+	// if controller has init function then execute it
 	if c.init != nil {
 		err := c.init()
 		if err != nil {
@@ -128,7 +112,7 @@ func (c *controller) runWorker() {
 // processNextWorkItem will read a single work item off the workqueue and
 // attempt to process it, by calling the syncHandler.
 func (c *controller) processNextWorkItem() bool {
-	key, shutdown := c.workQueue.Get()
+	obj, shutdown := c.workQueue.Get()
 
 	if shutdown {
 		return false
@@ -138,48 +122,33 @@ func (c *controller) processNextWorkItem() bool {
 	// processing this item. If any error occurs we re-add this key to workqueue
 	// with rate-limiting.
 	// if we don't want to process this key further then call Forget for this key
-	defer c.workQueue.Done(key)
+	defer c.workQueue.Done(obj)
 
-	qObj, ok := key.(workQueueLoad)
+	key, ok := obj.(string)
 	if !ok {
 		c.workQueue.Forget(key)
 	}
 
-	var err error
-
-	switch qObj.operation {
-	case qOpDestroy:
-		if c.destroy != nil {
-			err = c.destroy(qObj.key)
-		}
-	case qOpSync:
-		err = c.reconcile(qObj.key)
-	}
-
+	err := c.reconcile(key)
 	if err == nil {
 		c.workQueue.Forget(key)
 		return true
 	}
 
 	c.logger.WithError(err).
-		WithField("key", qObj.key).
-		WithField("operation", qObj.operation).
+		WithField("key", key).
 		Error("Error handling key, re-adding it")
 	c.workQueue.AddRateLimited(key)
 	return true
 }
 
-func (c *controller) enqueue(obj interface{}, op queueOperation) {
+func (c *controller) enqueue(obj interface{}) {
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		c.logger.WithError(errors.WithStack(err)).
-			WithField("operation", op).
 			Error("Error fetching queue from object, skipping it")
 		return
 	}
 
-	c.workQueue.Add(workQueueLoad{
-		key:       key,
-		operation: op,
-	})
+	c.workQueue.Add(key)
 }
