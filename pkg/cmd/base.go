@@ -15,10 +15,12 @@ limitations under the License.
 package cmd
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 // NewCommand returns the command for dmaas-operator
@@ -35,6 +37,10 @@ func NewCommand(name string) *cobra.Command {
 		NewCmdServer(config),
 	)
 
+	// add klog flag to filter logs from modules, using klog
+	klog.InitFlags(flag.CommandLine)
+
+	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	return cmd
 }
 
