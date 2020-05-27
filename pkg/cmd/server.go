@@ -121,7 +121,7 @@ func NewCmdServer(c Config) *cobra.Command {
 			s, err := newServer(c, opts, logger)
 			CheckError(err)
 
-			controllerList := s.listController()
+			controllerList := s.getSupportedControllers()
 			CheckError(s.startController(controllerList))
 		},
 	}
@@ -227,8 +227,8 @@ var (
 	defaultControllerWorker int = 1
 )
 
-// listController returns list of supported controller
-func (s *server) listController() []controller.Controller {
+// getSupportedControllers returns list of supported controller
+func (s *server) getSupportedControllers() []controller.Controller {
 	var controllerList []controller.Controller
 
 	dmaasBackupCtrl := controller.NewDMaaSBackupController(
