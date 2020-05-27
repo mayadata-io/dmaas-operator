@@ -27,7 +27,7 @@ type DMaaSRestore struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
-	metav1.ObjectMeta `json:"metadata.omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +optional
 	Spec RestoreSpec `json:"spec"`
@@ -201,7 +201,7 @@ type DMaaSRestoreList struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
-	metav1.ListMeta `json:"metadata.omitempty"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []DMaaSRestore `json:"items"`
 }
