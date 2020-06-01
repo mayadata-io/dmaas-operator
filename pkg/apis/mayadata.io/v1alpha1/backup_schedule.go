@@ -27,7 +27,7 @@ type DMaaSBackup struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
-	metav1.ObjectMeta `json:"metadata.omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +optional
 	Spec DMaaSBackupSpec `json:"spec"`
@@ -198,7 +198,7 @@ type DMaaSBackupList struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
-	metav1.ListMeta `json:"metadata.omitempty"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []DMaaSBackup `json:"items"`
 }

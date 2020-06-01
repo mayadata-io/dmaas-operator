@@ -229,22 +229,40 @@ var (
 
 // getSupportedControllers returns list of supported controller
 func (s *server) getSupportedControllers() []controller.Controller {
-	var controllerList []controller.Controller
-
-	dmaasBackupCtrl := controller.NewDMaaSBackupController(
-		s.namespace, s.openebsNamespace, s.veleroNamespace,
-		s.kubeClient,
-		s.dmaasClient,
-		s.sharedInformerFactory.Mayadata().V1alpha1().DMaaSBackups(),
-		s.veleroClient,
-		s.logger,
-		s.clock,
-		defaultControllerWorker,
-	)
-	controllerList = append(controllerList, dmaasBackupCtrl)
-	// add other controllers in similar way
-
-	return controllerList
+	return []controller.Controller{
+		// prebackupaction controller
+		controller.NewPreBackupActionController(
+			s.namespace,
+			s.kubeClient,
+			s.dmaasClient,
+			s.sharedInformerFactory.Mayadata().V1alpha1().PreBackupActions(),
+			s.logger,
+			s.clock,
+			defaultControllerWorker,
+		),
+		// dmaasbackup controller
+		controller.NewDMaaSBackupController(
+			s.namespace, s.openebsNamespace, s.veleroNamespace,
+			s.kubeClient,
+			s.dmaasClient,
+			s.sharedInformerFactory.Mayadata().V1alpha1().DMaaSBackups(),
+			s.veleroClient,
+			s.logger,
+			s.clock,
+			defaultControllerWorker,
+		),
+		// dmaasrestore controller
+		controller.NewDMaaSRestoreController(
+			s.namespace, s.openebsNamespace, s.veleroNamespace,
+			s.kubeClient,
+			s.dmaasClient,
+			s.sharedInformerFactory.Mayadata().V1alpha1().DMaaSRestores(),
+			s.veleroClient,
+			s.logger,
+			s.clock,
+			defaultControllerWorker,
+		),
+	}
 }
 
 // startController run all the given controllers

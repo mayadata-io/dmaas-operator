@@ -25,7 +25,7 @@ type PreBackupAction struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
-	metav1.ObjectMeta `json:"metadata.omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +optional
 	Spec PreBackupActionSpec `json:"spec"`
@@ -136,7 +136,7 @@ type PreBackupActionList struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// +optional
-	metav1.ListMeta `json:"metadata.omitempty"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []PreBackupAction `json:"items"`
 }
