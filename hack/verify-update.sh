@@ -11,6 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+
 HACK_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 #verify_go_mod checks if go module files are updated or not
