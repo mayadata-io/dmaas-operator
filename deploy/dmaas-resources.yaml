@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dmaas
+  labels:
+    component: dmaas
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dmaas-operator
+  labels:
+    name: dmaas-operator
+    component: dmaas
+  namespace: dmaas
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: dmaas-operator
+  labels:
+    name: dmaas-operator
+    component: dmaas
+  namespace: dmaas
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: dmaas-operator
+    namespace: dmaas
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: dmaas-operator
+  labels:
+    component: dmaas
+  namespace: dmaas
+spec:
+  selector:
+    matchLabels:
+      app: dmaas-operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: dmaas-operator
+        component: dmaas
+    spec:
+      containers:
+      - name: dmaas-operator
+        image: mayadata.io/dmaas-operator-amd64:ci
+        imagePullPolicy: IfNotPresent
+        args:
+          - server
+        command:
+          - /dmaas-operator
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPENEBS_NAMESPACE
+          value: openebs
+        - name: VELERO_NAMESPACE
+          value: velero
+        resources:
+          limits:
+            cpu: "1"
+            memory: 256Mi
+          requests:
+            cpu: 500m
+            memory: 128Mi
+      serviceAccountName: dmaas-operator
