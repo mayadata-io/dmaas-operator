@@ -1,0 +1,1212 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: dmaasrestores.mayadata.io
+spec:
+  group: mayadata.io
+  names:
+    kind: DMaaSRestore
+    listKind: DMaaSRestoreList
+    plural: dmaasrestores
+    singular: dmaasrestore
+  preserveUnknownFields: false
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: DMaaSRestore represents the restore resource
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: RestoreSpec defines the spec for restore
+          properties:
+            backupName:
+              description: BackupName defines the backup from/till which restore should
+                happen
+              type: string
+            backupScheduleName:
+              description: BackupScheduleName defines the schedule name from which
+                restore should happen
+              type: string
+            openebsNamespace:
+              description: OpenEBSNamespace represents the namespace in which openebs
+                is installed
+              type: string
+            restoreSpec:
+              description: RestoreSpec defines the spec for velero restore resource
+              properties:
+                backupName:
+                  description: BackupName is the unique name of the Velero backup
+                    to restore from.
+                  type: string
+                excludedNamespaces:
+                  description: ExcludedNamespaces contains a list of namespaces that
+                    are not included in the restore.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                excludedResources:
+                  description: ExcludedResources is a slice of resource names that
+                    are not included in the restore.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                includeClusterResources:
+                  description: IncludeClusterResources specifies whether cluster-scoped
+                    resources should be included for consideration in the restore.
+                    If null, defaults to true.
+                  nullable: true
+                  type: boolean
+                includedNamespaces:
+                  description: IncludedNamespaces is a slice of namespace names to
+                    include objects from. If empty, all namespaces are included.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                includedResources:
+                  description: IncludedResources is a slice of resource names to include
+                    in the restore. If empty, all resources in the backup are included.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                labelSelector:
+                  description: LabelSelector is a metav1.LabelSelector to filter with
+                    when restoring individual objects from the backup. If empty or
+                    nil, all objects are included. Optional.
+                  nullable: true
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements.
+                        The requirements are ANDed.
+                      items:
+                        description: A label selector requirement is a selector that
+                          contains values, a key, and an operator that relates the
+                          key and values.
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies
+                              to.
+                            type: string
+                          operator:
+                            description: operator represents a key's relationship
+                              to a set of values. Valid operators are In, NotIn, Exists
+                              and DoesNotExist.
+                            type: string
+                          values:
+                            description: values is an array of string values. If the
+                              operator is In or NotIn, the values array must be non-empty.
+                              If the operator is Exists or DoesNotExist, the values
+                              array must be empty. This array is replaced during a
+                              strategic merge patch.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      description: matchLabels is a map of {key,value} pairs. A single
+                        {key,value} in the matchLabels map is equivalent to an element
+                        of matchExpressions, whose key field is "key", the operator
+                        is "In", and the values array contains only "value". The requirements
+                        are ANDed.
+                      type: object
+                  type: object
+                namespaceMapping:
+                  additionalProperties:
+                    type: string
+                  description: NamespaceMapping is a map of source namespace names
+                    to target namespace names to restore into. Any source namespaces
+                    not included in the map will be restored into namespaces of the
+                    same name.
+                  type: object
+                restorePVs:
+                  description: RestorePVs specifies whether to restore all included
+                    PVs from snapshot (via the cloudprovider).
+                  nullable: true
+                  type: boolean
+                scheduleName:
+                  description: ScheduleName is the unique name of the Velero schedule
+                    to restore from. If specified, and BackupName is empty, Velero
+                    will restore from the most recent successful backup created from
+                    this schedule.
+                  type: string
+              required:
+              - backupName
+              type: object
+          required:
+          - openebsNamespace
+          - restoreSpec
+          type: object
+        status:
+          description: RestoreStatus represents the status of restore
+          properties:
+            completedBackupCount:
+              description: CompletedBackupCount represents the restored count of backup
+              type: integer
+            conditions:
+              description: Conditions represents the pre-flight action, to be executed
+                before restore, and it's status
+              items:
+                description: RestoreCondition represents the restore pre-flight check
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime represents the transition time
+                      of condition
+                    format: date-time
+                    nullable: true
+                    type: string
+                  lastUpdatedTime:
+                    description: LastUpdatedTime represents the last update time of
+                      condition
+                    format: date-time
+                    nullable: true
+                    type: string
+                  message:
+                    description: Message represents the cause/warning/message from
+                      condition
+                    type: string
+                  reason:
+                    description: ' Reason, Message when error occurs Reason represents
+                      the cause of failure in condition'
+                    type: string
+                  status:
+                    description: Status defines the status of Condition, True or False
+                    type: string
+                  type:
+                    description: ' Predefined types of Restore Type defines the RestoreCondition
+                      type'
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              nullable: true
+              type: array
+            message:
+              description: Message represents the cause/action/outcome of Restore
+              type: string
+            phase:
+              description: Phase represents the restore phase
+              type: string
+            reason:
+              description: Reason represents the cause of failure in Restore
+              type: string
+            restoreList:
+              description: Restores represents the list of RestoreDetails
+              items:
+                description: RestoreDetails represents the restore information
+                properties:
+                  backupName:
+                    description: BackupName is name of backup from which restore is
+                      created
+                    type: string
+                  completedAt:
+                    description: CompletedAt is time stamp at which restore completed
+                    format: date-time
+                    nullable: true
+                    type: string
+                  name:
+                    description: RestoreName is velero restore resource name
+                    type: string
+                  snapshotStatus:
+                    description: PVRestoreStatus represents the list of PVRestoreStatusDetails
+                    items:
+                      description: PVRestoreStatusDetails represents the status of
+                        PV restore
+                      properties:
+                        completionTimestamp:
+                          description: CompletionTimestamp represents the timestamp
+                            at which restore of the snapshot completed
+                          format: date-time
+                          nullable: true
+                          type: string
+                        conditions:
+                          description: Conditions represents the list of condition
+                            for the PV restore
+                          items:
+                            description: RestoreCondition represents the restore pre-flight
+                              check
+                            properties:
+                              lastTransitionTime:
+                                description: LastTransitionTime represents the transition
+                                  time of condition
+                                format: date-time
+                                nullable: true
+                                type: string
+                              lastUpdatedTime:
+                                description: LastUpdatedTime represents the last update
+                                  time of condition
+                                format: date-time
+                                nullable: true
+                                type: string
+                              message:
+                                description: Message represents the cause/warning/message
+                                  from condition
+                                type: string
+                              reason:
+                                description: ' Reason, Message when error occurs Reason
+                                  represents the cause of failure in condition'
+                                type: string
+                              status:
+                                description: Status defines the status of Condition,
+                                  True or False
+                                type: string
+                              type:
+                                description: ' Predefined types of Restore Type defines
+                                  the RestoreCondition type'
+                                type: string
+                            required:
+                            - status
+                            - type
+                            type: object
+                          nullable: true
+                          type: array
+                        phase:
+                          description: Phase represents the restore phase of snapshot
+                          type: string
+                        progress:
+                          description: Progress represents the progress of snapshot
+                            restore
+                          properties:
+                            bytesDone:
+                              description: BytesDone represents the amount of data
+                                snapshotted This value is updated from PodVolumeBackup
+                                or CStorBackup resource
+                              type: integer
+                            totalSize:
+                              description: TotalBytes represents the total amount
+                                of data for the snapshot This value is updated from
+                                PodVolumeBackup or CStorBackup resource
+                              type: integer
+                          required:
+                          - bytesDone
+                          - totalSize
+                          type: object
+                        pvName:
+                          description: PVName is pv name on which snapshot is restored
+                          type: string
+                        snapshotID:
+                          description: SnapshotID is snapshotID from which restore
+                            started
+                          type: string
+                        snapshotType:
+                          description: Type defines the snapshot type
+                          type: string
+                        startTimestamp:
+                          description: StartTimestamp represents the timestamp at
+                            which restore of the snapshot started
+                          format: date-time
+                          nullable: true
+                          type: string
+                      required:
+                      - phase
+                      - progress
+                      - pvName
+                      - snapshotID
+                      - snapshotType
+                      type: object
+                    nullable: true
+                    type: array
+                  startedAt:
+                    description: StartedAt is time stamp at which restore started
+                    format: date-time
+                    nullable: true
+                    type: string
+                  state:
+                    description: State represents the restore state
+                    type: string
+                required:
+                - backupName
+                - name
+                - state
+                type: object
+              nullable: true
+              type: array
+            totalBackupCount:
+              description: TotalBackupCount represents the count of backup, to be
+                restored
+              type: integer
+          required:
+          - completedBackupCount
+          - phase
+          - totalBackupCount
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: dmaasbackups.mayadata.io
+spec:
+  group: mayadata.io
+  names:
+    kind: DMaaSBackup
+    listKind: DMaaSBackupList
+    plural: dmaasbackups
+    singular: dmaasbackup
+  preserveUnknownFields: false
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: DMaaSBackup represents the backup/schedule resource
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: DMaaSBackupSpec defines the spec for DMaaSBackup resource
+          properties:
+            periodicFullBackup:
+              description: PeriodicFullBackupCfg defines the config for periodic full
+                backup if PeriodicFullBackupCfg is provided then VeleroScheduleSpec
+                should not be empty
+              properties:
+                cronTime:
+                  description: CronTime is cron expression defining when to run full
+                    backup
+                  type: string
+                fullBackupRetentionThreshold:
+                  description: FullBackupRetentionThreshold represents the number
+                    of full backup needs to be retained
+                  type: integer
+                retryThresholdOnFailure:
+                  description: RetryThresholdOnFailure defines number of retry should
+                    be attempted on backup failure Default value is 0
+                  type: integer
+              required:
+              - fullBackupRetentionThreshold
+              type: object
+            state:
+              description: State defines if given DMaaSBackup is active or not Default
+                value is Active
+              nullable: true
+              type: string
+            veleroScheduleSpec:
+              description: VeleroScheduleSpec defines the spec for backup schedule
+                In case of non-scheduled backup, VeleroScheduleSpec will be empty
+              properties:
+                schedule:
+                  description: Schedule is a Cron expression defining when to run
+                    the Backup.
+                  type: string
+                template:
+                  description: Template is the definition of the Backup to be run
+                    on the provided schedule
+                  properties:
+                    excludedNamespaces:
+                      description: ExcludedNamespaces contains a list of namespaces
+                        that are not included in the backup.
+                      items:
+                        type: string
+                      nullable: true
+                      type: array
+                    excludedResources:
+                      description: ExcludedResources is a slice of resource names
+                        that are not included in the backup.
+                      items:
+                        type: string
+                      nullable: true
+                      type: array
+                    hooks:
+                      description: Hooks represent custom behaviors that should be
+                        executed at different phases of the backup.
+                      properties:
+                        resources:
+                          description: Resources are hooks that should be executed
+                            when backing up individual instances of a resource.
+                          items:
+                            description: BackupResourceHookSpec defines one or more
+                              BackupResourceHooks that should be executed based on
+                              the rules defined for namespaces, resources, and label
+                              selector.
+                            properties:
+                              excludedNamespaces:
+                                description: ExcludedNamespaces specifies the namespaces
+                                  to which this hook spec does not apply.
+                                items:
+                                  type: string
+                                nullable: true
+                                type: array
+                              excludedResources:
+                                description: ExcludedResources specifies the resources
+                                  to which this hook spec does not apply.
+                                items:
+                                  type: string
+                                nullable: true
+                                type: array
+                              includedNamespaces:
+                                description: IncludedNamespaces specifies the namespaces
+                                  to which this hook spec applies. If empty, it applies
+                                  to all namespaces.
+                                items:
+                                  type: string
+                                nullable: true
+                                type: array
+                              includedResources:
+                                description: IncludedResources specifies the resources
+                                  to which this hook spec applies. If empty, it applies
+                                  to all resources.
+                                items:
+                                  type: string
+                                nullable: true
+                                type: array
+                              labelSelector:
+                                description: LabelSelector, if specified, filters
+                                  the resources to which this hook spec applies.
+                                nullable: true
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: A label selector requirement is
+                                        a selector that contains values, a key, and
+                                        an operator that relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: operator represents a key's
+                                            relationship to a set of values. Valid
+                                            operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: values is an array of string
+                                            values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If
+                                            the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array
+                                            is replaced during a strategic merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: matchLabels is a map of {key,value}
+                                      pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions,
+                                      whose key field is "key", the operator is "In",
+                                      and the values array contains only "value".
+                                      The requirements are ANDed.
+                                    type: object
+                                type: object
+                              name:
+                                description: Name is the name of this hook.
+                                type: string
+                              post:
+                                description: PostHooks is a list of BackupResourceHooks
+                                  to execute after storing the item in the backup.
+                                  These are executed after all "additional items"
+                                  from item actions are processed.
+                                items:
+                                  description: BackupResourceHook defines a hook for
+                                    a resource.
+                                  properties:
+                                    exec:
+                                      description: Exec defines an exec hook.
+                                      properties:
+                                        command:
+                                          description: Command is the command and
+                                            arguments to execute.
+                                          items:
+                                            type: string
+                                          minItems: 1
+                                          type: array
+                                        container:
+                                          description: Container is the container
+                                            in the pod where the command should be
+                                            executed. If not specified, the pod's
+                                            first container is used.
+                                          type: string
+                                        onError:
+                                          description: OnError specifies how Velero
+                                            should behave if it encounters an error
+                                            executing this hook.
+                                          enum:
+                                          - Continue
+                                          - Fail
+                                          type: string
+                                        timeout:
+                                          description: Timeout defines the maximum
+                                            amount of time Velero should wait for
+                                            the hook to complete before considering
+                                            the execution a failure.
+                                          type: string
+                                      required:
+                                      - command
+                                      type: object
+                                  required:
+                                  - exec
+                                  type: object
+                                type: array
+                              pre:
+                                description: PreHooks is a list of BackupResourceHooks
+                                  to execute prior to storing the item in the backup.
+                                  These are executed before any "additional items"
+                                  from item actions are processed.
+                                items:
+                                  description: BackupResourceHook defines a hook for
+                                    a resource.
+                                  properties:
+                                    exec:
+                                      description: Exec defines an exec hook.
+                                      properties:
+                                        command:
+                                          description: Command is the command and
+                                            arguments to execute.
+                                          items:
+                                            type: string
+                                          minItems: 1
+                                          type: array
+                                        container:
+                                          description: Container is the container
+                                            in the pod where the command should be
+                                            executed. If not specified, the pod's
+                                            first container is used.
+                                          type: string
+                                        onError:
+                                          description: OnError specifies how Velero
+                                            should behave if it encounters an error
+                                            executing this hook.
+                                          enum:
+                                          - Continue
+                                          - Fail
+                                          type: string
+                                        timeout:
+                                          description: Timeout defines the maximum
+                                            amount of time Velero should wait for
+                                            the hook to complete before considering
+                                            the execution a failure.
+                                          type: string
+                                      required:
+                                      - command
+                                      type: object
+                                  required:
+                                  - exec
+                                  type: object
+                                type: array
+                            required:
+                            - name
+                            type: object
+                          nullable: true
+                          type: array
+                      type: object
+                    includeClusterResources:
+                      description: IncludeClusterResources specifies whether cluster-scoped
+                        resources should be included for consideration in the backup.
+                      nullable: true
+                      type: boolean
+                    includedNamespaces:
+                      description: IncludedNamespaces is a slice of namespace names
+                        to include objects from. If empty, all namespaces are included.
+                      items:
+                        type: string
+                      nullable: true
+                      type: array
+                    includedResources:
+                      description: IncludedResources is a slice of resource names
+                        to include in the backup. If empty, all resources are included.
+                      items:
+                        type: string
+                      nullable: true
+                      type: array
+                    labelSelector:
+                      description: LabelSelector is a metav1.LabelSelector to filter
+                        with when adding individual objects to the backup. If empty
+                        or nil, all objects are included. Optional.
+                      nullable: true
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: A label selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: operator represents a key's relationship
+                                  to a set of values. Valid operators are In, NotIn,
+                                  Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: values is an array of string values.
+                                  If the operator is In or NotIn, the values array
+                                  must be non-empty. If the operator is Exists or
+                                  DoesNotExist, the values array must be empty. This
+                                  array is replaced during a strategic merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: matchLabels is a map of {key,value} pairs.
+                            A single {key,value} in the matchLabels map is equivalent
+                            to an element of matchExpressions, whose key field is
+                            "key", the operator is "In", and the values array contains
+                            only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                    snapshotVolumes:
+                      description: SnapshotVolumes specifies whether to take cloud
+                        snapshots of any PV's referenced in the set of objects included
+                        in the Backup.
+                      nullable: true
+                      type: boolean
+                    storageLocation:
+                      description: StorageLocation is a string containing the name
+                        of a BackupStorageLocation where the backup should be stored.
+                      type: string
+                    ttl:
+                      description: TTL is a time.Duration-parseable string describing
+                        how long the Backup should be retained for.
+                      type: string
+                    volumeSnapshotLocations:
+                      description: VolumeSnapshotLocations is a list containing names
+                        of VolumeSnapshotLocations associated with this backup.
+                      items:
+                        type: string
+                      type: array
+                  type: object
+              required:
+              - schedule
+              - template
+              type: object
+          type: object
+        status:
+          description: DMaaSBackupStatus represents the status of DMaaSBackup resource
+          properties:
+            latestBackukpStatus:
+              description: LatestBackupStatus represents the status of latest backup
+                created by DMaaSBackup
+              properties:
+                backupName:
+                  description: BackupName represents the name of the backup, which
+                    is in-progress or completed recently
+                  type: string
+                completionTimestamp:
+                  description: CompletionTimestamp represents the completion time
+                    of the given Backup
+                  format: date-time
+                  nullable: true
+                  type: string
+                phase:
+                  description: Phase represents the given Backup Phase
+                  type: string
+                snapshotStatus:
+                  description: SnapshotStatus represents the list of snapshotStatus
+                  items:
+                    description: SnapshotStatusDetails represents the snapshot information
+                      and it's status
+                    properties:
+                      completionTimestamp:
+                        description: CompletionTimestamp represents the completion
+                          time of snapshot
+                        format: date-time
+                        nullable: true
+                        type: string
+                      phase:
+                        description: Phase represents the phase of PodVolumeBackup
+                          or CStorBackup resource
+                        type: string
+                      progress:
+                        description: Progress represents the progress of the snapshot
+                        properties:
+                          bytesDone:
+                            description: BytesDone represents the amount of data snapshotted
+                              This value is updated from PodVolumeBackup or CStorBackup
+                              resource
+                            type: integer
+                          totalSize:
+                            description: TotalBytes represents the total amount of
+                              data for the snapshot This value is updated from PodVolumeBackup
+                              or CStorBackup resource
+                            type: integer
+                        required:
+                        - bytesDone
+                        - totalSize
+                        type: object
+                      pvName:
+                        description: PVName represents the PV name on which snapshot
+                          is created
+                        type: string
+                      snapshotID:
+                        description: SnapshotID represents the ID of the snapshot
+                        type: string
+                      snapshotType:
+                        description: Type represents the type of snapshot
+                        type: string
+                      startTimestamp:
+                        description: StartTimestamp represents the start time of snapshot
+                        format: date-time
+                        nullable: true
+                        type: string
+                    required:
+                    - phase
+                    - progress
+                    - pvName
+                    - snapshotID
+                    - snapshotType
+                    type: object
+                  nullable: true
+                  type: array
+                startTimestamp:
+                  description: StartTimestamp represents the Backup start time
+                  format: date-time
+                  nullable: true
+                  type: string
+              required:
+              - backupName
+              - phase
+              type: object
+            message:
+              description: Message represents the cause/action/outcome of DMaaSBackup
+              type: string
+            phase:
+              description: Phase represents the current phase of DMaaSBackup
+              type: string
+            reason:
+              description: Reason represents the cause of failure in DMaaSBackup
+              type: string
+            veleroBackupName:
+              description: VeleroBackupName represents the name of Velero Backup,
+                created by DMaaSBackup, if VeleroScheduleSpec is having empty schedule
+              type: string
+            veleroSchedules:
+              description: VeleroSchedules represents the list of Velero Schedule
+                created by DMaaSBackup
+              items:
+                description: VeleroScheduleDetails represents the information about
+                  schedule
+                properties:
+                  creationTimestamp:
+                    description: CreationTimestamp defines the time-stamp of velero
+                      schedule CR
+                    format: date-time
+                    nullable: true
+                    type: string
+                  scheduleName:
+                    description: ScheduleName represents the velero schedule resource
+                      name
+                    type: string
+                  status:
+                    description: Status represents the velero schedule status
+                    type: string
+                required:
+                - scheduleName
+                - status
+                type: object
+              nullable: true
+              type: array
+          required:
+          - phase
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (devel)
+  creationTimestamp: null
+  name: prebackupactions.mayadata.io
+spec:
+  group: mayadata.io
+  names:
+    kind: PreBackupAction
+    listKind: PreBackupActionList
+    plural: prebackupactions
+    singular: prebackupaction
+  preserveUnknownFields: false
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: PreBackupAction represents the pre-backup action for DMaaS
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PreBackupActionSpec represents the list of action to be executed
+            prior to back up
+          properties:
+            oneTimeAction:
+              description: OneTimeAction specify if this PrePreBackupAction needs
+                to be executed periodically or not - If true, action will be taken
+                until it becomes success, marks Phase as Completed and stops further
+                action. - If false, action will be taken in regular intervals, leaving
+                Phase as InProgress. Default is false
+              type: boolean
+            setAnnotation:
+              description: SetAnnotation defines the list of annotation to be applied
+                on resources
+              properties:
+                excludeResourceList:
+                  description: IncludeResourceList is list of resources not to be
+                    annotated
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  nullable: true
+                  type: array
+                includeResourceList:
+                  description: IncludeResourceList is list of resources to be annotated
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  type: array
+              required:
+              - includeResourceList
+              type: object
+            setLabel:
+              description: SetLabel defines the list of labels to be applied to resources
+              properties:
+                excludeResourceList:
+                  description: ExcludeResourceList is list of resources, need not
+                    to be labeled
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  nullable: true
+                  type: array
+                includeResourceList:
+                  description: IncludeResourceList is list of resource, need to be
+                    labeled
+                  items:
+                    description: TargetResource represents the k8s resource information
+                      used for pre-backup action
+                    properties:
+                      apiversion:
+                        description: APIVersion of the resource
+                        type: string
+                      kind:
+                        description: Kind of the resource
+                        type: string
+                      name:
+                        description: Name of the resource
+                        items:
+                          type: string
+                        type: array
+                      namespace:
+                        description: Namespace of the resource
+                        type: string
+                    required:
+                    - kind
+                    type: object
+                  type: array
+                labels:
+                  description: Labels contains list of label to be set on specified
+                    resources
+                  items:
+                    type: string
+                  type: array
+              required:
+              - includeResourceList
+              - labels
+              type: object
+          type: object
+        status:
+          description: PreBackupActionStatus defines the status of PreBackupAction
+            resource
+          properties:
+            lastFailureTimestamp:
+              description: LastFailureTimeStamp represents the time when PreBackupAction
+                failed
+              format: date-time
+              nullable: true
+              type: string
+            lastSuccessfulTimestamp:
+              description: LastSuccessfulTime represents the time when PreBackupAction
+                executed successfully
+              format: date-time
+              nullable: true
+              type: string
+            phase:
+              description: Phase defines the PreBackupAction stage
+              type: string
+            updatedAnnotatedList:
+              description: UpdatedAnnotatedList represents the list of resources annotated
+                successfully
+              items:
+                description: TargetResource represents the k8s resource information
+                  used for pre-backup action
+                properties:
+                  apiversion:
+                    description: APIVersion of the resource
+                    type: string
+                  kind:
+                    description: Kind of the resource
+                    type: string
+                  name:
+                    description: Name of the resource
+                    items:
+                      type: string
+                    type: array
+                  namespace:
+                    description: Namespace of the resource
+                    type: string
+                required:
+                - kind
+                type: object
+              nullable: true
+              type: array
+            updatedSelectedList:
+              description: UpdatedSelectedList represents the list of resources labeled
+                successfully
+              items:
+                description: TargetResource represents the k8s resource information
+                  used for pre-backup action
+                properties:
+                  apiversion:
+                    description: APIVersion of the resource
+                    type: string
+                  kind:
+                    description: Kind of the resource
+                    type: string
+                  name:
+                    description: Name of the resource
+                    items:
+                      type: string
+                    type: array
+                  namespace:
+                    description: Namespace of the resource
+                    type: string
+                required:
+                - kind
+                type: object
+              nullable: true
+              type: array
+          required:
+          - phase
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dmaas
+  labels:
+    component: dmaas
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dmaas-operator
+  labels:
+    name: dmaas-operator
+    component: dmaas
+  namespace: dmaas
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: dmaas-operator
+  labels:
+    name: dmaas-operator
+    component: dmaas
+  namespace: dmaas
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: dmaas-operator
+    namespace: dmaas
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: dmaas-operator
+  labels:
+    component: dmaas
+  namespace: dmaas
+spec:
+  selector:
+    matchLabels:
+      app: dmaas-operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: dmaas-operator
+        component: dmaas
+    spec:
+      containers:
+      - name: dmaas-operator
+        image: mayadata.io/dmaas-operator-amd64:ci
+        imagePullPolicy: IfNotPresent
+        args:
+          - server
+        command:
+          - /dmaas-operator
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPENEBS_NAMESPACE
+          value: openebs
+        - name: VELERO_NAMESPACE
+          value: velero
+        resources:
+          limits:
+            cpu: "1"
+            memory: 256Mi
+          requests:
+            cpu: 500m
+            memory: 128Mi
+      serviceAccountName: dmaas-operator
