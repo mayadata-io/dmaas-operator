@@ -37,5 +37,12 @@ controller-gen \
 	paths=./pkg/apis/mayadata.io/v1alpha1/...
 
 #copy generated CRDs to deploy/crds
-rm -rf deploy/crds
+rm -rf deploy/crds deploy/dmaas-operator.yaml
 cp -a pkg/generated/crds/manifests deploy/crds
+
+#generate operator file
+for i in `find deploy/crds -type f|sort`; do
+	cat $i >> deploy/dmaas-operator.yaml
+done
+echo "---" >> deploy/dmaas-operator.yaml
+cat deploy/dmaas-resources.yaml >> deploy/dmaas-operator.yaml

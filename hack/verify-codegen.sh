@@ -16,3 +16,6 @@ set -e
 HACK_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 ${HACK_DIR}/update-codegen.sh --verify-only
+
+# verify if operator yaml is updated or not
+git diff --exit-code -- deploy/dmaas-operator.yaml
