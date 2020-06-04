@@ -4,376 +4,7 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: (devel)
-  creationTimestamp: null
-  name: dmaasrestores.mayadata.io
-spec:
-  group: mayadata.io
-  names:
-    kind: DMaaSRestore
-    listKind: DMaaSRestoreList
-    plural: dmaasrestores
-    singular: dmaasrestore
-  preserveUnknownFields: false
-  scope: Namespaced
-  validation:
-    openAPIV3Schema:
-      description: DMaaSRestore represents the restore resource
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: RestoreSpec defines the spec for restore
-          properties:
-            backupName:
-              description: BackupName defines the backup from/till which restore should
-                happen
-              type: string
-            backupScheduleName:
-              description: BackupScheduleName defines the schedule name from which
-                restore should happen
-              type: string
-            openebsNamespace:
-              description: OpenEBSNamespace represents the namespace in which openebs
-                is installed
-              type: string
-            restoreSpec:
-              description: RestoreSpec defines the spec for velero restore resource
-              properties:
-                backupName:
-                  description: BackupName is the unique name of the Velero backup
-                    to restore from.
-                  type: string
-                excludedNamespaces:
-                  description: ExcludedNamespaces contains a list of namespaces that
-                    are not included in the restore.
-                  items:
-                    type: string
-                  nullable: true
-                  type: array
-                excludedResources:
-                  description: ExcludedResources is a slice of resource names that
-                    are not included in the restore.
-                  items:
-                    type: string
-                  nullable: true
-                  type: array
-                includeClusterResources:
-                  description: IncludeClusterResources specifies whether cluster-scoped
-                    resources should be included for consideration in the restore.
-                    If null, defaults to true.
-                  nullable: true
-                  type: boolean
-                includedNamespaces:
-                  description: IncludedNamespaces is a slice of namespace names to
-                    include objects from. If empty, all namespaces are included.
-                  items:
-                    type: string
-                  nullable: true
-                  type: array
-                includedResources:
-                  description: IncludedResources is a slice of resource names to include
-                    in the restore. If empty, all resources in the backup are included.
-                  items:
-                    type: string
-                  nullable: true
-                  type: array
-                labelSelector:
-                  description: LabelSelector is a metav1.LabelSelector to filter with
-                    when restoring individual objects from the backup. If empty or
-                    nil, all objects are included. Optional.
-                  nullable: true
-                  properties:
-                    matchExpressions:
-                      description: matchExpressions is a list of label selector requirements.
-                        The requirements are ANDed.
-                      items:
-                        description: A label selector requirement is a selector that
-                          contains values, a key, and an operator that relates the
-                          key and values.
-                        properties:
-                          key:
-                            description: key is the label key that the selector applies
-                              to.
-                            type: string
-                          operator:
-                            description: operator represents a key's relationship
-                              to a set of values. Valid operators are In, NotIn, Exists
-                              and DoesNotExist.
-                            type: string
-                          values:
-                            description: values is an array of string values. If the
-                              operator is In or NotIn, the values array must be non-empty.
-                              If the operator is Exists or DoesNotExist, the values
-                              array must be empty. This array is replaced during a
-                              strategic merge patch.
-                            items:
-                              type: string
-                            type: array
-                        required:
-                        - key
-                        - operator
-                        type: object
-                      type: array
-                    matchLabels:
-                      additionalProperties:
-                        type: string
-                      description: matchLabels is a map of {key,value} pairs. A single
-                        {key,value} in the matchLabels map is equivalent to an element
-                        of matchExpressions, whose key field is "key", the operator
-                        is "In", and the values array contains only "value". The requirements
-                        are ANDed.
-                      type: object
-                  type: object
-                namespaceMapping:
-                  additionalProperties:
-                    type: string
-                  description: NamespaceMapping is a map of source namespace names
-                    to target namespace names to restore into. Any source namespaces
-                    not included in the map will be restored into namespaces of the
-                    same name.
-                  type: object
-                restorePVs:
-                  description: RestorePVs specifies whether to restore all included
-                    PVs from snapshot (via the cloudprovider).
-                  nullable: true
-                  type: boolean
-                scheduleName:
-                  description: ScheduleName is the unique name of the Velero schedule
-                    to restore from. If specified, and BackupName is empty, Velero
-                    will restore from the most recent successful backup created from
-                    this schedule.
-                  type: string
-              required:
-              - backupName
-              type: object
-          required:
-          - openebsNamespace
-          - restoreSpec
-          type: object
-        status:
-          description: RestoreStatus represents the status of restore
-          properties:
-            completedBackupCount:
-              description: CompletedBackupCount represents the restored count of backup
-              type: integer
-            conditions:
-              description: Conditions represents the pre-flight action, to be executed
-                before restore, and it's status
-              items:
-                description: RestoreCondition represents the restore pre-flight check
-                properties:
-                  lastTransitionTime:
-                    description: LastTransitionTime represents the transition time
-                      of condition
-                    format: date-time
-                    nullable: true
-                    type: string
-                  lastUpdatedTime:
-                    description: LastUpdatedTime represents the last update time of
-                      condition
-                    format: date-time
-                    nullable: true
-                    type: string
-                  message:
-                    description: Message represents the cause/warning/message from
-                      condition
-                    type: string
-                  reason:
-                    description: ' Reason, Message when error occurs Reason represents
-                      the cause of failure in condition'
-                    type: string
-                  status:
-                    description: Status defines the status of Condition, True or False
-                    type: string
-                  type:
-                    description: ' Predefined types of Restore Type defines the RestoreCondition
-                      type'
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              nullable: true
-              type: array
-            message:
-              description: Message represents the cause/action/outcome of Restore
-              type: string
-            phase:
-              description: Phase represents the restore phase
-              type: string
-            reason:
-              description: Reason represents the cause of failure in Restore
-              type: string
-            restoreList:
-              description: Restores represents the list of RestoreDetails
-              items:
-                description: RestoreDetails represents the restore information
-                properties:
-                  backupName:
-                    description: BackupName is name of backup from which restore is
-                      created
-                    type: string
-                  completedAt:
-                    description: CompletedAt is time stamp at which restore completed
-                    format: date-time
-                    nullable: true
-                    type: string
-                  name:
-                    description: RestoreName is velero restore resource name
-                    type: string
-                  snapshotStatus:
-                    description: PVRestoreStatus represents the list of PVRestoreStatusDetails
-                    items:
-                      description: PVRestoreStatusDetails represents the status of
-                        PV restore
-                      properties:
-                        completionTimestamp:
-                          description: CompletionTimestamp represents the timestamp
-                            at which restore of the snapshot completed
-                          format: date-time
-                          nullable: true
-                          type: string
-                        conditions:
-                          description: Conditions represents the list of condition
-                            for the PV restore
-                          items:
-                            description: RestoreCondition represents the restore pre-flight
-                              check
-                            properties:
-                              lastTransitionTime:
-                                description: LastTransitionTime represents the transition
-                                  time of condition
-                                format: date-time
-                                nullable: true
-                                type: string
-                              lastUpdatedTime:
-                                description: LastUpdatedTime represents the last update
-                                  time of condition
-                                format: date-time
-                                nullable: true
-                                type: string
-                              message:
-                                description: Message represents the cause/warning/message
-                                  from condition
-                                type: string
-                              reason:
-                                description: ' Reason, Message when error occurs Reason
-                                  represents the cause of failure in condition'
-                                type: string
-                              status:
-                                description: Status defines the status of Condition,
-                                  True or False
-                                type: string
-                              type:
-                                description: ' Predefined types of Restore Type defines
-                                  the RestoreCondition type'
-                                type: string
-                            required:
-                            - status
-                            - type
-                            type: object
-                          nullable: true
-                          type: array
-                        phase:
-                          description: Phase represents the restore phase of snapshot
-                          type: string
-                        progress:
-                          description: Progress represents the progress of snapshot
-                            restore
-                          properties:
-                            bytesDone:
-                              description: BytesDone represents the amount of data
-                                snapshotted This value is updated from PodVolumeBackup
-                                or CStorBackup resource
-                              type: integer
-                            totalSize:
-                              description: TotalBytes represents the total amount
-                                of data for the snapshot This value is updated from
-                                PodVolumeBackup or CStorBackup resource
-                              type: integer
-                          required:
-                          - bytesDone
-                          - totalSize
-                          type: object
-                        pvName:
-                          description: PVName is pv name on which snapshot is restored
-                          type: string
-                        snapshotID:
-                          description: SnapshotID is snapshotID from which restore
-                            started
-                          type: string
-                        snapshotType:
-                          description: Type defines the snapshot type
-                          type: string
-                        startTimestamp:
-                          description: StartTimestamp represents the timestamp at
-                            which restore of the snapshot started
-                          format: date-time
-                          nullable: true
-                          type: string
-                      required:
-                      - phase
-                      - progress
-                      - pvName
-                      - snapshotID
-                      - snapshotType
-                      type: object
-                    nullable: true
-                    type: array
-                  startedAt:
-                    description: StartedAt is time stamp at which restore started
-                    format: date-time
-                    nullable: true
-                    type: string
-                  state:
-                    description: State represents the restore state
-                    type: string
-                required:
-                - backupName
-                - name
-                - state
-                type: object
-              nullable: true
-              type: array
-            totalBackupCount:
-              description: TotalBackupCount represents the count of backup, to be
-                restored
-              type: integer
-          required:
-          - completedBackupCount
-          - phase
-          - totalBackupCount
-          type: object
-      type: object
-  version: v1alpha1
-  versions:
-  - name: v1alpha1
-    served: true
-    storage: true
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
-
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: (devel)
+    controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
   name: dmaasbackups.mayadata.io
 spec:
@@ -886,7 +517,376 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: (devel)
+    controller-gen.kubebuilder.io/version: v0.3.0
+  creationTimestamp: null
+  name: dmaasrestores.mayadata.io
+spec:
+  group: mayadata.io
+  names:
+    kind: DMaaSRestore
+    listKind: DMaaSRestoreList
+    plural: dmaasrestores
+    singular: dmaasrestore
+  preserveUnknownFields: false
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: DMaaSRestore represents the restore resource
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: RestoreSpec defines the spec for restore
+          properties:
+            backupName:
+              description: BackupName defines the backup from/till which restore should
+                happen
+              type: string
+            backupScheduleName:
+              description: BackupScheduleName defines the schedule name from which
+                restore should happen
+              type: string
+            openebsNamespace:
+              description: OpenEBSNamespace represents the namespace in which openebs
+                is installed
+              type: string
+            restoreSpec:
+              description: RestoreSpec defines the spec for velero restore resource
+              properties:
+                backupName:
+                  description: BackupName is the unique name of the Velero backup
+                    to restore from.
+                  type: string
+                excludedNamespaces:
+                  description: ExcludedNamespaces contains a list of namespaces that
+                    are not included in the restore.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                excludedResources:
+                  description: ExcludedResources is a slice of resource names that
+                    are not included in the restore.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                includeClusterResources:
+                  description: IncludeClusterResources specifies whether cluster-scoped
+                    resources should be included for consideration in the restore.
+                    If null, defaults to true.
+                  nullable: true
+                  type: boolean
+                includedNamespaces:
+                  description: IncludedNamespaces is a slice of namespace names to
+                    include objects from. If empty, all namespaces are included.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                includedResources:
+                  description: IncludedResources is a slice of resource names to include
+                    in the restore. If empty, all resources in the backup are included.
+                  items:
+                    type: string
+                  nullable: true
+                  type: array
+                labelSelector:
+                  description: LabelSelector is a metav1.LabelSelector to filter with
+                    when restoring individual objects from the backup. If empty or
+                    nil, all objects are included. Optional.
+                  nullable: true
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements.
+                        The requirements are ANDed.
+                      items:
+                        description: A label selector requirement is a selector that
+                          contains values, a key, and an operator that relates the
+                          key and values.
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies
+                              to.
+                            type: string
+                          operator:
+                            description: operator represents a key's relationship
+                              to a set of values. Valid operators are In, NotIn, Exists
+                              and DoesNotExist.
+                            type: string
+                          values:
+                            description: values is an array of string values. If the
+                              operator is In or NotIn, the values array must be non-empty.
+                              If the operator is Exists or DoesNotExist, the values
+                              array must be empty. This array is replaced during a
+                              strategic merge patch.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - key
+                        - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      description: matchLabels is a map of {key,value} pairs. A single
+                        {key,value} in the matchLabels map is equivalent to an element
+                        of matchExpressions, whose key field is "key", the operator
+                        is "In", and the values array contains only "value". The requirements
+                        are ANDed.
+                      type: object
+                  type: object
+                namespaceMapping:
+                  additionalProperties:
+                    type: string
+                  description: NamespaceMapping is a map of source namespace names
+                    to target namespace names to restore into. Any source namespaces
+                    not included in the map will be restored into namespaces of the
+                    same name.
+                  type: object
+                restorePVs:
+                  description: RestorePVs specifies whether to restore all included
+                    PVs from snapshot (via the cloudprovider).
+                  nullable: true
+                  type: boolean
+                scheduleName:
+                  description: ScheduleName is the unique name of the Velero schedule
+                    to restore from. If specified, and BackupName is empty, Velero
+                    will restore from the most recent successful backup created from
+                    this schedule.
+                  type: string
+              required:
+              - backupName
+              type: object
+          required:
+          - openebsNamespace
+          - restoreSpec
+          type: object
+        status:
+          description: RestoreStatus represents the status of restore
+          properties:
+            completedBackupCount:
+              description: CompletedBackupCount represents the restored count of backup
+              type: integer
+            conditions:
+              description: Conditions represents the pre-flight action, to be executed
+                before restore, and it's status
+              items:
+                description: RestoreCondition represents the restore pre-flight check
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime represents the transition time
+                      of condition
+                    format: date-time
+                    nullable: true
+                    type: string
+                  lastUpdatedTime:
+                    description: LastUpdatedTime represents the last update time of
+                      condition
+                    format: date-time
+                    nullable: true
+                    type: string
+                  message:
+                    description: Message represents the cause/warning/message from
+                      condition
+                    type: string
+                  reason:
+                    description: ' Reason, Message when error occurs Reason represents
+                      the cause of failure in condition'
+                    type: string
+                  status:
+                    description: Status defines the status of Condition, True or False
+                    type: string
+                  type:
+                    description: ' Predefined types of Restore Type defines the RestoreCondition
+                      type'
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              nullable: true
+              type: array
+            message:
+              description: Message represents the cause/action/outcome of Restore
+              type: string
+            phase:
+              description: Phase represents the restore phase
+              type: string
+            reason:
+              description: Reason represents the cause of failure in Restore
+              type: string
+            restoreList:
+              description: Restores represents the list of RestoreDetails
+              items:
+                description: RestoreDetails represents the restore information
+                properties:
+                  backupName:
+                    description: BackupName is name of backup from which restore is
+                      created
+                    type: string
+                  completedAt:
+                    description: CompletedAt is time stamp at which restore completed
+                    format: date-time
+                    nullable: true
+                    type: string
+                  name:
+                    description: RestoreName is velero restore resource name
+                    type: string
+                  snapshotStatus:
+                    description: PVRestoreStatus represents the list of PVRestoreStatusDetails
+                    items:
+                      description: PVRestoreStatusDetails represents the status of
+                        PV restore
+                      properties:
+                        completionTimestamp:
+                          description: CompletionTimestamp represents the timestamp
+                            at which restore of the snapshot completed
+                          format: date-time
+                          nullable: true
+                          type: string
+                        conditions:
+                          description: Conditions represents the list of condition
+                            for the PV restore
+                          items:
+                            description: RestoreCondition represents the restore pre-flight
+                              check
+                            properties:
+                              lastTransitionTime:
+                                description: LastTransitionTime represents the transition
+                                  time of condition
+                                format: date-time
+                                nullable: true
+                                type: string
+                              lastUpdatedTime:
+                                description: LastUpdatedTime represents the last update
+                                  time of condition
+                                format: date-time
+                                nullable: true
+                                type: string
+                              message:
+                                description: Message represents the cause/warning/message
+                                  from condition
+                                type: string
+                              reason:
+                                description: ' Reason, Message when error occurs Reason
+                                  represents the cause of failure in condition'
+                                type: string
+                              status:
+                                description: Status defines the status of Condition,
+                                  True or False
+                                type: string
+                              type:
+                                description: ' Predefined types of Restore Type defines
+                                  the RestoreCondition type'
+                                type: string
+                            required:
+                            - status
+                            - type
+                            type: object
+                          nullable: true
+                          type: array
+                        phase:
+                          description: Phase represents the restore phase of snapshot
+                          type: string
+                        progress:
+                          description: Progress represents the progress of snapshot
+                            restore
+                          properties:
+                            bytesDone:
+                              description: BytesDone represents the amount of data
+                                snapshotted This value is updated from PodVolumeBackup
+                                or CStorBackup resource
+                              type: integer
+                            totalSize:
+                              description: TotalBytes represents the total amount
+                                of data for the snapshot This value is updated from
+                                PodVolumeBackup or CStorBackup resource
+                              type: integer
+                          required:
+                          - bytesDone
+                          - totalSize
+                          type: object
+                        pvName:
+                          description: PVName is pv name on which snapshot is restored
+                          type: string
+                        snapshotID:
+                          description: SnapshotID is snapshotID from which restore
+                            started
+                          type: string
+                        snapshotType:
+                          description: Type defines the snapshot type
+                          type: string
+                        startTimestamp:
+                          description: StartTimestamp represents the timestamp at
+                            which restore of the snapshot started
+                          format: date-time
+                          nullable: true
+                          type: string
+                      required:
+                      - phase
+                      - progress
+                      - pvName
+                      - snapshotID
+                      - snapshotType
+                      type: object
+                    nullable: true
+                    type: array
+                  startedAt:
+                    description: StartedAt is time stamp at which restore started
+                    format: date-time
+                    nullable: true
+                    type: string
+                  state:
+                    description: State represents the restore state
+                    type: string
+                required:
+                - backupName
+                - name
+                - state
+                type: object
+              nullable: true
+              type: array
+            totalBackupCount:
+              description: TotalBackupCount represents the count of backup, to be
+                restored
+              type: integer
+          required:
+          - completedBackupCount
+          - phase
+          - totalBackupCount
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
   name: prebackupactions.mayadata.io
 spec:

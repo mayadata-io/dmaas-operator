@@ -41,7 +41,7 @@ rm -rf deploy/crds deploy/dmaas-operator.yaml
 cp -a pkg/generated/crds/manifests deploy/crds
 
 #generate operator file
-for i in `find deploy/crds -type f`; do
+for i in `find deploy/crds -type f|sort`; do
 	cat $i >> deploy/dmaas-operator.yaml
 done
 echo "---" >> deploy/dmaas-operator.yaml
