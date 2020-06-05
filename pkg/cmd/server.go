@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/controller"
+	"github.com/mayadata-io/dmaas-operator/pkg/dmaasbackup"
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
 	informers "github.com/mayadata-io/dmaas-operator/pkg/generated/informers/externalversions"
 	"github.com/pkg/errors"
@@ -28,7 +29,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	velero "github.com/vmware-tanzu/velero/pkg/generated/clientset/versioned"
-	"k8s.io/apimachinery/pkg/util/clock"
+	veleroinformers "github.com/vmware-tanzu/velero/pkg/generated/informers/externalversions"
+	apimachineryclock "k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -89,18 +91,19 @@ func (s *serverOpts) BindFlags(flags *pflag.FlagSet) {
 }
 
 type server struct {
-	namespace             string
-	openebsNamespace      string
-	veleroNamespace       string
-	kubeClient            kubernetes.Interface
-	dmaasClient           clientset.Interface
-	veleroClient          velero.Interface
-	sharedInformerFactory informers.SharedInformerFactory
-	ctx                   context.Context
-	cancelFunc            context.CancelFunc
-	logger                logrus.FieldLogger
-	clock                 clock.Clock
-	opts                  *serverOpts
+	namespace                   string
+	openebsNamespace            string
+	veleroNamespace             string
+	kubeClient                  kubernetes.Interface
+	dmaasClient                 clientset.Interface
+	veleroClient                velero.Interface
+	sharedInformerFactory       informers.SharedInformerFactory
+	veleroSharedInformerFactory veleroinformers.SharedInformerFactory
+	ctx                         context.Context
+	cancelFunc                  context.CancelFunc
+	logger                      logrus.FieldLogger
+	clock                       apimachineryclock.Clock
+	opts                        *serverOpts
 }
 
 // NewCmdServer returns the command for server
@@ -207,18 +210,19 @@ func newServer(cfg Config, opts *serverOpts, logger *logrus.Logger) (*server, er
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	return &server{
-		namespace:             cfg.GetNamespace(),
-		openebsNamespace:      opts.openebsNamespace,
-		veleroNamespace:       opts.veleroNamespace,
-		kubeClient:            kubeClient,
-		dmaasClient:           dmaasClient,
-		veleroClient:          veleroClient,
-		sharedInformerFactory: informers.NewSharedInformerFactoryWithOptions(dmaasClient, 0, informers.WithNamespace(cfg.GetNamespace())),
-		ctx:                   ctx,
-		logger:                logger,
-		cancelFunc:            cancelFunc,
-		clock:                 clock.RealClock{},
-		opts:                  opts,
+		namespace:                   cfg.GetNamespace(),
+		openebsNamespace:            opts.openebsNamespace,
+		veleroNamespace:             opts.veleroNamespace,
+		kubeClient:                  kubeClient,
+		dmaasClient:                 dmaasClient,
+		veleroClient:                veleroClient,
+		sharedInformerFactory:       informers.NewSharedInformerFactoryWithOptions(dmaasClient, 0, informers.WithNamespace(cfg.GetNamespace())),
+		veleroSharedInformerFactory: veleroinformers.NewSharedInformerFactoryWithOptions(veleroClient, 0, veleroinformers.WithNamespace(opts.veleroNamespace)),
+		ctx:                         ctx,
+		logger:                      logger,
+		cancelFunc:                  cancelFunc,
+		clock:                       apimachineryclock.RealClock{},
+		opts:                        opts,
 	}, nil
 }
 
@@ -242,11 +246,16 @@ func (s *server) getSupportedControllers() []controller.Controller {
 		),
 		// dmaasbackup controller
 		controller.NewDMaaSBackupController(
-			s.namespace, s.openebsNamespace, s.veleroNamespace,
-			s.kubeClient,
+			s.namespace,
 			s.dmaasClient,
 			s.sharedInformerFactory.Mayadata().V1alpha1().DMaaSBackups(),
-			s.veleroClient,
+			dmaasbackup.NewDMaaSBackupper(
+				s.veleroNamespace,
+				s.dmaasClient,
+				s.veleroClient.VeleroV1(),
+				s.veleroSharedInformerFactory.Velero().V1(),
+				s.clock,
+			),
 			s.logger,
 			s.clock,
 			defaultControllerWorker,

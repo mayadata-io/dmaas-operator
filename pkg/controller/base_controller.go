@@ -47,6 +47,9 @@ type controller struct {
 	// controller syncPeriod
 	syncPeriod time.Duration
 
+	// sync function, which is executed at interval of syncPeriod
+	sync func()
+
 	cacheSyncWaiters []cache.InformerSynced
 }
 
@@ -63,6 +66,10 @@ func (c *controller) Run(ctx context.Context) error {
 	// check if controller implemented reconcile function or not
 	if c.reconcile == nil {
 		return errors.Errorf("no reconcile function provided")
+	}
+
+	if c.sync != nil && c.syncPeriod == 0 {
+		return errors.Errorf("syncperiod not set")
 	}
 
 	// if controller has init function then execute it
@@ -92,7 +99,15 @@ func (c *controller) Run(ctx context.Context) error {
 	wg.Add(c.numWorker)
 	for i := 0; i < c.numWorker; i++ {
 		go func() {
-			wait.Until(c.runWorker, c.syncPeriod, ctx.Done())
+			wait.Until(c.runWorker, time.Second, ctx.Done())
+			wg.Done()
+		}()
+	}
+
+	if c.sync != nil {
+		wg.Add(1)
+		go func() {
+			wait.Until(c.sync, c.syncPeriod, ctx.Done())
 			wg.Done()
 		}()
 	}
