@@ -36,13 +36,31 @@ type DMaaSBackup struct {
 	Status DMaaSBackupStatus `json:"status"`
 }
 
+// DMaasBackupState represents the state of DMaasBackup
+type DMaasBackupState string
+
+const (
+	// DMaaSBackupStateEmpty means dmaasbackup is active
+	DMaaSBackupStateEmpty DMaasBackupState = ""
+
+	// DMaaSBackupStateActive means dmaasbackup is active
+	DMaaSBackupStateActive DMaasBackupState = "Active"
+
+	// DMaaSBackupStatePaused means dmaasbackup is paused
+	DMaaSBackupStatePaused DMaasBackupState = "Paused"
+)
+
 // DMaaSBackupSpec defines the spec for DMaaSBackup resource
 type DMaaSBackupSpec struct {
 	// State defines if given DMaaSBackup is active or not
 	// Default value is Active
 	// +optional
+	State DMaasBackupState `json:"state,omitempty"`
+
+	// PreBackupActionName name of relevant prebackupaction
+	// +optional
 	// +nullable
-	State *string `json:"state,omitempty"`
+	PreBackupActionName *string `json:"preBackupActionName"`
 
 	// PeriodicFullBackupCfg defines the config for periodic full backup
 	// if PeriodicFullBackupCfg is provided then VeleroScheduleSpec should not be empty
@@ -73,14 +91,18 @@ type PeriodicFullBackupConfig struct {
 type DMaaSBackupPhase string
 
 const (
+	// DMaaSBackupPhaseActive represents the active phase of DMaaSBackup
+	DMaaSBackupPhaseActive DMaaSBackupPhase = "Active"
+
 	// DMaaSBackupPhaseInProgress represents the in progress phase of DMaaSBackup
 	DMaaSBackupPhaseInProgress DMaaSBackupPhase = "InProgress"
 
 	// DMaaSBackupPhasePaused represents the pause phase of DMaaSBackup
 	DMaaSBackupPhasePaused DMaaSBackupPhase = "Paused"
 
-	// DMaaSBackupPhaseActive represents the active phase of DMaaSBackup
-	DMaaSBackupPhaseActive DMaaSBackupPhase = "Active"
+	// DMaaSBackupPhaseCompleted represents the completed phase of DMaaSBackup
+	// This is applicable if dmaasbackup is not a scheduled backup
+	DMaaSBackupPhaseCompleted DMaaSBackupPhase = "Completed"
 )
 
 // DMaaSBackupStatus represents the status of DMaaSBackup resource
@@ -100,10 +122,10 @@ type DMaaSBackupStatus struct {
 
 	// VeleroBackupName represents the name of Velero Backup, created by DMaaSBackup,
 	// if VeleroScheduleSpec is having empty schedule
-	VeleroBackupName string `json:"veleroBackupName,omitempty"`
+	VeleroBackupName *string `json:"veleroBackupName,omitempty"`
 
 	// LatestBackupStatus represents the status of latest backup created by DMaaSBackup
-	LatestBackupStatus LatestBackupStatusDetails `json:"latestBackukpStatus,omitempty"`
+	LatestBackupStatus *LatestBackupStatusDetails `json:"latestBackupStatus,omitempty"`
 }
 
 // VeleroScheduleStatus represents the status of VeleroSchedule
