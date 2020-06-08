@@ -15,7 +15,8 @@ package dmaasbackup
 
 import "github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 
+// updateBackupInfo updates the latest backup details for the given object
 func (d *dmaasBackup) updateBackupInfo(dbkp *v1alpha1.DMaaSBackup) error {
-
+	// TODO
 	return nil
 }

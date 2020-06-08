@@ -34,6 +34,10 @@ import (
 )
 
 var (
+	// backupReconcilePeriod defines the interval at which updated dmaasbackup will be reconciled
+	backupReconcilePeriod = 10 * time.Second
+
+	// backupSyncPeriod defines the interval at which all the dmaasbackups will be reconciled
 	backupSyncPeriod = 30 * time.Second
 )
 
@@ -67,16 +71,31 @@ func NewDMaaSBackupController(
 
 	c.reconcile = c.processBackup
 	c.syncPeriod = backupSyncPeriod
+	c.reconcilePeriod = backupReconcilePeriod
 	c.sync = c.syncAll
+
+	shouldHandleEvent := func(obj interface{}) bool {
+		dbkp, ok := obj.(v1alpha1.DMaaSBackup)
+		if !ok {
+			return false
+		}
+
+		yes, _ := shouldProcessDMaaSBackup(dbkp)
+		return yes
+	}
 
 	dmaasBackupInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				c.enqueue(obj)
+				if ok := shouldHandleEvent(obj); ok {
+					c.enqueue(obj)
+				}
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				_ = oldObj
-				c.enqueue(newObj)
+				if ok := shouldHandleEvent(newObj); ok {
+					c.enqueue(newObj)
+				}
 			},
 			DeleteFunc: func(obj interface{}) {
 				c.enqueue(obj)
@@ -87,7 +106,7 @@ func NewDMaaSBackupController(
 }
 
 func (d *dmaasBackupController) processBackup(key string) error {
-	log := d.logger.WithField("key", key)
+	log := d.logger.WithField("dmaasbackup", key)
 
 	log.Debug("Processing dmaasbackup")
 
@@ -105,33 +124,18 @@ func (d *dmaasBackupController) processBackup(key string) error {
 		return errors.Wrapf(err, "failed to get dmaasbackup")
 	}
 
-	switch original.Spec.State {
-	case v1alpha1.DMaaSBackupStateEmpty, v1alpha1.DMaaSBackupStateActive:
-		// process only active/new dmaasbackup
-		if original.Status.Phase == v1alpha1.DMaaSBackupPhaseCompleted {
-			log.Debug("DMaaSBackup completed, skipping")
-			return nil
-		}
-	case v1alpha1.DMaaSBackupStatePaused:
-		if original.Status.Phase == v1alpha1.DMaaSBackupPhasePaused {
-			log.Debug("DMaaSBackup paused, skipping")
-			return nil
-		}
-		// dmaasbackup is paused but it is not processed by operator
+	if yes, msg := shouldProcessDMaaSBackup(*original); !yes {
+		log.Debug(msg)
+		return nil
 	}
 
 	dbkp := original.DeepCopy()
 	dbkp.Status.Reason = ""
 
-	logger := logrus.New()
-	logger.Out, logger.Level = log.Logger.Out, log.Logger.Level
-	logger.SetFormatter(new(logrus.JSONFormatter))
-
 	// set dmaasbackup phase InProgress
 	dbkp.Status.Phase = v1alpha1.DMaaSBackupPhaseInProgress
 
-	dbkplogger := logger.WithField("dmaasbackup", key)
-	err = d.backupper.Execute(dbkp, dbkplogger)
+	err = d.backupper.Execute(dbkp, log)
 	if err != nil {
 		log.WithError(err).Errorf("failed to execute backup")
 		dbkp.Status.Reason = err.Error()
@@ -178,6 +182,31 @@ func (d *dmaasBackupController) syncAll() {
 	}
 
 	for _, dbkp := range dbkps {
+		if yes, _ := shouldProcessDMaaSBackup(*dbkp); !yes {
+			continue
+		}
 		d.enqueue(dbkp)
 	}
+}
+
+// shouldProcessDMaaSBackup return true if dbkp is active or needs reconcilation
+func shouldProcessDMaaSBackup(dbkp v1alpha1.DMaaSBackup) (shouldProcess bool, msg string) {
+	switch dbkp.Spec.State {
+	case v1alpha1.DMaaSBackupStateEmpty, v1alpha1.DMaaSBackupStateActive:
+		// process only active/new dmaasbackup
+		if dbkp.Status.Phase == v1alpha1.DMaaSBackupPhaseCompleted {
+			msg = "DMaaSBackup completed, skipping"
+			shouldProcess = false
+			return
+		}
+	case v1alpha1.DMaaSBackupStatePaused:
+		if dbkp.Status.Phase == v1alpha1.DMaaSBackupPhasePaused {
+			msg = "DMaaSBackup paused, skipping"
+			shouldProcess = false
+			return
+		}
+		// dmaasbackup is paused but it is not processed by operator
+	}
+	shouldProcess = true
+	return
 }

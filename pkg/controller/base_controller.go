@@ -44,7 +44,10 @@ type controller struct {
 	// reconcile is main function, which process the event
 	reconcile func(key string) error
 
-	// controller syncPeriod
+	// reconcilePeriod represent interval at which reconcilation will be executed, default value is 1s
+	reconcilePeriod time.Duration
+
+	// syncPeriod represent intervanl at which sync function will be executed
 	syncPeriod time.Duration
 
 	// sync function, which is executed at interval of syncPeriod
@@ -55,10 +58,11 @@ type controller struct {
 
 func newController(name string, logger logrus.FieldLogger, numWorker int) *controller {
 	return &controller{
-		name:      name,
-		logger:    logger.WithField("controller", name),
-		workQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
-		numWorker: numWorker,
+		name:            name,
+		logger:          logger.WithField("controller", name),
+		workQueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
+		numWorker:       numWorker,
+		reconcilePeriod: time.Second,
 	}
 }
 
@@ -96,10 +100,22 @@ func (c *controller) Run(ctx context.Context) error {
 	// Waitgroup for starting controller goroutines.
 	var wg sync.WaitGroup
 
+	defer func() {
+		c.logger.Info("Waiting for all workers to shutdown")
+
+		c.workQueue.ShutDown()
+
+		// wait for all the go routines
+		wg.Wait()
+
+		c.logger.Info("All workers are down")
+
+	}()
+
 	wg.Add(c.numWorker)
 	for i := 0; i < c.numWorker; i++ {
 		go func() {
-			wait.Until(c.runWorker, time.Second, ctx.Done())
+			wait.Until(c.runWorker, c.reconcilePeriod, ctx.Done())
 			wg.Done()
 		}()
 	}

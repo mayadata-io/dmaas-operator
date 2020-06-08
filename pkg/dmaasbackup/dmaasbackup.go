@@ -16,6 +16,7 @@ package dmaasbackup
 import (
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/generated/clientset/versioned/typed/velero/v1"
 	velerov1informer "github.com/vmware-tanzu/velero/pkg/generated/informers/externalversions/velero/v1"
@@ -65,15 +66,39 @@ func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogg
 
 	d.logger = logger
 
+	d.logger.Debug("updating schedule information")
+
+	// check for stale velero schedule created by dmaas-operator
+	// This is necessary because there are chances where operator has created
+	// required schedule/backup but missed to update the dmaasbackup object, due to error or restart
+	err = d.updateScheduleInfo(obj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check schedule information")
+	}
+
 	switch obj.Spec.State {
 	case v1alpha1.DMaaSBackupStatePaused:
 		err = d.pauseSchedule(obj)
 	default:
-		err = d.processSchedule(obj)
+		if obj.Spec.PeriodicFullBackupCfg.CronTime != "" {
+			err = d.processFullBackupSchedule(obj)
+		} else {
+			err = d.processNonFullBackupSchedule(obj)
+		}
 	}
 
 	if err != nil {
-		err = d.updateBackupInfo(obj)
+		return errors.Wrapf(err, "failed to process dmaasbackup")
 	}
+
+	err = d.cleanupOldSchedule(obj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to perform cleanup for old schedule")
+	}
+
+	d.logger.Debug("updating backup information")
+	// update latest backup information for dmaasbackup
+	err = d.updateBackupInfo(obj)
+
 	return err
 }
