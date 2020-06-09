@@ -55,10 +55,13 @@ spec:
               required:
               - fullBackupRetentionThreshold
               type: object
+            preBackupActionName:
+              description: PreBackupActionName name of relevant prebackupaction
+              nullable: true
+              type: string
             state:
               description: State defines if given DMaaSBackup is active or not Default
                 value is Active
-              nullable: true
               type: string
             veleroScheduleSpec:
               description: VeleroScheduleSpec defines the spec for backup schedule
@@ -374,7 +377,7 @@ spec:
         status:
           description: DMaaSBackupStatus represents the status of DMaaSBackup resource
           properties:
-            latestBackukpStatus:
+            latestBackupStatus:
               description: LatestBackupStatus represents the status of latest backup
                 created by DMaaSBackup
               properties:
