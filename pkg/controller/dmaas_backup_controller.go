@@ -74,28 +74,14 @@ func NewDMaaSBackupController(
 	c.reconcilePeriod = backupReconcilePeriod
 	c.sync = c.syncAll
 
-	shouldHandleEvent := func(obj interface{}) bool {
-		dbkp, ok := obj.(v1alpha1.DMaaSBackup)
-		if !ok {
-			return false
-		}
-
-		yes, _ := shouldProcessDMaaSBackup(dbkp)
-		return yes
-	}
-
 	dmaasBackupInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				if ok := shouldHandleEvent(obj); ok {
-					c.enqueue(obj)
-				}
+				c.enqueue(obj)
 			},
 			UpdateFunc: func(oldObj, newObj interface{}) {
 				_ = oldObj
-				if ok := shouldHandleEvent(newObj); ok {
-					c.enqueue(newObj)
-				}
+				c.enqueue(newObj)
 			},
 			DeleteFunc: func(obj interface{}) {
 				c.enqueue(obj)

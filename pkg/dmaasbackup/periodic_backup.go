@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (d *dmaasBackup) processFullBackupSchedule(obj *v1alpha1.DMaaSBackup) error {
+func (d *dmaasBackup) processPeriodicConfigSchedule(obj *v1alpha1.DMaaSBackup) error {
 	d.logger.Debug("Processing fullbackup")
 
 	cr, err := cron.ParseStandard(obj.Spec.PeriodicFullBackupCfg.CronTime)

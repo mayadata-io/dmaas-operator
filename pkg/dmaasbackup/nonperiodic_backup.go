@@ -18,7 +18,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (d *dmaasBackup) processNonFullBackupSchedule(dbkp *v1alpha1.DMaaSBackup) error {
+func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBackup) error {
 	d.logger.Debug("Processing non fullbackup")
 
 	// non full backup schedule can be of two types, schedule or normal backup

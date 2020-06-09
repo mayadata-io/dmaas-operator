@@ -76,15 +76,10 @@ func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogg
 		return errors.Wrapf(err, "failed to check schedule information")
 	}
 
-	switch obj.Spec.State {
-	case v1alpha1.DMaaSBackupStatePaused:
-		err = d.pauseSchedule(obj)
-	default:
-		if obj.Spec.PeriodicFullBackupCfg.CronTime != "" {
-			err = d.processFullBackupSchedule(obj)
-		} else {
-			err = d.processNonFullBackupSchedule(obj)
-		}
+	if obj.Spec.PeriodicFullBackupCfg.CronTime != "" {
+		err = d.processPeriodicConfigSchedule(obj)
+	} else {
+		err = d.processNonperiodicConfigSchedule(obj)
 	}
 
 	if err != nil {
