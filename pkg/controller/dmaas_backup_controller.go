@@ -18,19 +18,22 @@ import (
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
 	informers "github.com/mayadata-io/dmaas-operator/pkg/generated/informers/externalversions/mayadata.io/v1alpha1"
-	"github.com/pkg/errors"
 
-	"github.com/mayadata-io/dmaas-operator/pkg/dmaasbackup"
-	dmaaslister "github.com/mayadata-io/dmaas-operator/pkg/generated/listers/mayadata.io/v1alpha1"
 	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"
 	apimachineryclock "k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/mayadata-io/dmaas-operator/pkg/dmaasbackup"
+	dmaaslister "github.com/mayadata-io/dmaas-operator/pkg/generated/listers/mayadata.io/v1alpha1"
 )
 
 var (
@@ -105,6 +108,7 @@ func (d *dmaasBackupController) processBackup(key string) error {
 	original, err := d.lister.DMaaSBackups(ns).Get(name)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			log.Debug("dmaasbackup not found")
 			return nil
 		}
 		return errors.Wrapf(err, "failed to get dmaasbackup")
@@ -116,14 +120,27 @@ func (d *dmaasBackupController) processBackup(key string) error {
 	}
 
 	dbkp := original.DeepCopy()
-	dbkp.Status.Reason = ""
 
-	// set dmaasbackup phase InProgress
-	dbkp.Status.Phase = v1alpha1.DMaaSBackupPhaseInProgress
+	// initialize dmaas backup's meta data and status
+	initializeDMaaSBackupMetaAndStatus(dbkp)
 
-	err = d.backupper.Execute(dbkp, log)
+	switch dbkp.DeletionTimestamp {
+	case nil:
+		err = d.backupper.Execute(dbkp, log)
+		if err != nil {
+			log.WithError(err).Errorf("failed to execute backup")
+		}
+	default:
+		err = d.backupper.Delete(dbkp, log)
+		if err == nil {
+			// remove finalizer
+			dbkp.ObjectMeta = removeDMaaSFinalizer(dbkp.ObjectMeta)
+		} else {
+			log.WithError(err).Errorf("failed to delete backup resources")
+		}
+	}
+
 	if err != nil {
-		log.WithError(err).Errorf("failed to execute backup")
 		dbkp.Status.Reason = err.Error()
 	}
 
@@ -175,7 +192,7 @@ func (d *dmaasBackupController) syncAll() {
 	}
 }
 
-// shouldProcessDMaaSBackup return true if dbkp is active or needs reconcilation
+// shouldProcessDMaaSBackup return true if dbkp is active or needs reconciliation
 func shouldProcessDMaaSBackup(dbkp v1alpha1.DMaaSBackup) (shouldProcess bool, msg string) {
 	switch dbkp.Spec.State {
 	case v1alpha1.DMaaSBackupStateEmpty, v1alpha1.DMaaSBackupStateActive:
@@ -195,4 +212,47 @@ func shouldProcessDMaaSBackup(dbkp v1alpha1.DMaaSBackup) (shouldProcess bool, ms
 	}
 	shouldProcess = true
 	return
+}
+
+// initializeDMaaSBackupMetaAndStatus update the dmaasbackup metadata and status
+// with required value
+func initializeDMaaSBackupMetaAndStatus(dbkp *v1alpha1.DMaaSBackup) {
+	dbkp.Status.Reason = ""
+
+	if dbkp.Status.Phase == v1alpha1.DMaaSBackupPhaseInProgress {
+		// We already initialized this dmaasbackup
+		return
+	}
+
+	// add dmaas operator finalizer
+	dbkp.ObjectMeta = addDMaaSFinalizer(dbkp.ObjectMeta)
+
+	// set dmaasbackup phase InProgress
+	dbkp.Status.Phase = v1alpha1.DMaaSBackupPhaseInProgress
+}
+
+// addDMaaSFinalizer add dmaas operator related finalizer to given object
+func addDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
+	finalizers := obj.GetFinalizers()
+	for _, finalizer := range finalizers {
+		if finalizer == v1alpha1.DMaaSKey {
+			return obj
+		}
+	}
+
+	obj.SetFinalizers(append(finalizers, v1alpha1.DMaaSKey))
+	return obj
+}
+
+// removeDMaaSFinalizer remove dmaas operator related finalizer to given object
+func removeDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
+	finalizers := obj.GetFinalizers()[:0]
+	for _, finalizer := range obj.GetFinalizers() {
+		if finalizer != v1alpha1.DMaaSKey {
+			finalizers = append(finalizers, finalizer)
+		}
+	}
+
+	obj.SetFinalizers(finalizers)
+	return obj
 }
