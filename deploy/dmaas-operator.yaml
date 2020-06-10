@@ -48,10 +48,6 @@ spec:
                   description: FullBackupRetentionThreshold represents the number
                     of full backup needs to be retained
                   type: integer
-                retryThresholdOnFailure:
-                  description: RetryThresholdOnFailure defines number of retry should
-                    be attempted on backup failure Default value is 0
-                  type: integer
               required:
               - fullBackupRetentionThreshold
               type: object

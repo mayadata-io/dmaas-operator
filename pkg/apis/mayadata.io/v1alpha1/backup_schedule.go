@@ -78,11 +78,6 @@ type PeriodicFullBackupConfig struct {
 	// CronTime is cron expression defining when to run full backup
 	CronTime string `json:"cronTime,omitempty"`
 
-	// RetryThresholdOnFailure defines number of retry should be
-	// attempted on backup failure
-	// Default value is 0
-	RetryThresholdOnFailure int `json:"retryThresholdOnFailure,omitempty"`
-
 	// FullBackupRetentionThreshold represents the number of full backup needs to be retained
 	FullBackupRetentionThreshold int `json:"fullBackupRetentionThreshold"`
 }
