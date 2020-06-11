@@ -44,10 +44,10 @@ type controller struct {
 	// reconcile is main function, which process the event
 	reconcile func(key string) error
 
-	// reconcilePeriod represent interval at which reconcilation will be executed, default value is 1s
+	// reconcilePeriod represent interval at which reconciliation will be executed, default value is 1s
 	reconcilePeriod time.Duration
 
-	// syncPeriod represent intervanl at which sync function will be executed
+	// syncPeriod represent interval at which sync function will be executed
 	syncPeriod time.Duration
 
 	// sync function, which is executed at interval of syncPeriod
@@ -109,7 +109,6 @@ func (c *controller) Run(ctx context.Context) error {
 		wg.Wait()
 
 		c.logger.Info("All workers are down")
-
 	}()
 
 	wg.Add(c.numWorker)

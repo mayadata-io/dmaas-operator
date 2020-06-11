@@ -14,13 +14,18 @@ limitations under the License.
 package dmaasbackup
 
 import (
-	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
-	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/generated/clientset/versioned/typed/velero/v1"
 	velerov1informer "github.com/vmware-tanzu/velero/pkg/generated/informers/externalversions/velero/v1"
 	velerov1lister "github.com/vmware-tanzu/velero/pkg/generated/listers/velero/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
+	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
 
 	apimachineryclock "k8s.io/apimachinery/pkg/util/clock"
 )
@@ -29,6 +34,9 @@ import (
 type DMaaSBackupper interface {
 	// Execute creates the velero backup for given dmaasbackup
 	Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error
+
+	// Delete perform the cleanup required as part of dmaasbackup deletion
+	Delete(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error
 }
 
 type dmaasBackup struct {
@@ -96,4 +104,37 @@ func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogg
 	err = d.updateBackupInfo(obj)
 
 	return err
+}
+
+func (d *dmaasBackup) Delete(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error {
+	d.logger = logger
+
+	d.logger.Debug("deleting schedule information")
+
+	// since dmaasbackup object is being deleted, we will skip updating
+	// stale schedules in status.veleroschedule
+	// We will fetch the active velero schedule from etcd and delete it
+
+	scheduleList, err := d.scheduleClient.List(
+		metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", v1alpha1.DMaaSBackupLabelKey, obj.Name)},
+	)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get velero schedules created by dmaas operator")
+	}
+
+	var deleteErr error
+
+	// if any error happened during deletion we will log it and
+	// we will return only last error, if any, occurred during schedule deletion
+	for _, schedule := range scheduleList.Items {
+		err := d.scheduleClient.Delete(schedule.Name, &metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			d.logger.Warningf("failed to delete schedule=%s err=%s", schedule.Name, err)
+			deleteErr = err
+			continue
+		}
+		d.logger.Infof("schedule=%s deleted", schedule.Name)
+	}
+
+	return deleteErr
 }
