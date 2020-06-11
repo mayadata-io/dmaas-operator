@@ -14,9 +14,12 @@ limitations under the License.
 package v1alpha1
 
 const (
-	// DMaaSKey represent source path for label/annotation/finalizer
-	DMaaSKey = "dmaas.mayadata.io"
+	// dmaasKey represent source path for label/annotation/finalizer
+	dmaasKey = "dmaas.mayadata.io"
+
+	// DMaaSFinalizer represent finalizer for dmaas-operator
+	DMaaSFinalizer = dmaasKey
 
 	// DMaaSBackupLabelKey defines label key for velero resources
-	DMaaSBackupLabelKey = DMaaSKey + "/dmaasbackup"
+	DMaaSBackupLabelKey = dmaasKey + "/dmaasbackup"
 )

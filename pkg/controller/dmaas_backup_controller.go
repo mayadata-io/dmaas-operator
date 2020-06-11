@@ -133,6 +133,8 @@ func (d *dmaasBackupController) processBackup(key string) error {
 	default:
 		err = d.backupper.Delete(dbkp, log)
 		if err == nil {
+			log.Infof("All resources for dmaasbackup deleted")
+
 			// remove finalizer
 			dbkp.ObjectMeta = removeDMaaSFinalizer(dbkp.ObjectMeta)
 		} else {
@@ -235,12 +237,12 @@ func initializeDMaaSBackupMetaAndStatus(dbkp *v1alpha1.DMaaSBackup) {
 func addDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
 	finalizers := obj.GetFinalizers()
 	for _, finalizer := range finalizers {
-		if finalizer == v1alpha1.DMaaSKey {
+		if finalizer == v1alpha1.DMaaSFinalizer {
 			return obj
 		}
 	}
 
-	obj.SetFinalizers(append(finalizers, v1alpha1.DMaaSKey))
+	obj.SetFinalizers(append(finalizers, v1alpha1.DMaaSFinalizer))
 	return obj
 }
 
@@ -248,7 +250,7 @@ func addDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
 func removeDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
 	finalizers := obj.GetFinalizers()[:0]
 	for _, finalizer := range obj.GetFinalizers() {
-		if finalizer != v1alpha1.DMaaSKey {
+		if finalizer != v1alpha1.DMaaSFinalizer {
 			finalizers = append(finalizers, finalizer)
 		}
 	}
