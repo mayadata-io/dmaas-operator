@@ -131,7 +131,9 @@ func (d *dmaasBackup) Delete(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogge
 		if err != nil && !apierrors.IsNotFound(err) {
 			d.logger.Warningf("failed to delete schedule=%s err=%s", schedule.Name, err)
 			deleteErr = err
+			continue
 		}
+		d.logger.Infof("schedule=%s deleted", schedule.Name)
 	}
 
 	return deleteErr
