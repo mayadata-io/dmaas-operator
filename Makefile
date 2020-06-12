@@ -30,7 +30,7 @@ GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 
 # Where to push the docker image.
-REGISTRY ?= mayadata.io
+REGISTRY ?= mayadataio
 
 BIN=dmaas-operator
 
