@@ -42,6 +42,7 @@ branches:
     - /^*-v[0-9]/
 
 after_success:
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then export REPO=mayadataio/dmaas-operator-amd64;
-     docker login -u "$DOCKER_USER" -p "$DOCKER_PASS" && docker build -t $REPO:ci . && docker push $REPO;
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+     docker login -u "$DOCKER_USER" -p "$DOCKER_PASS";
+     make push-image;
     fi
