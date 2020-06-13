@@ -22,11 +22,6 @@ import (
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
 
-const (
-	// dmaasBackupLabel for velero resources to map dmaasbackup
-	dmaasBackupLabel = "dmaas.mayadata.io/dmaasbackup"
-)
-
 func (d *dmaasBackup) createSchedule(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.Schedule, error) {
 	name := d.generateScheduleName(*dbkp)
 	scheduleObj := velerobuilder.ForSchedule(d.velerons, name).
@@ -35,7 +30,7 @@ func (d *dmaasBackup) createSchedule(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.S
 		ObjectMeta(
 			builder.WithLabels(
 				// add label using key, value
-				dmaasBackupLabel, dbkp.Name,
+				v1alpha1.DMaaSBackupLabelKey, dbkp.Name,
 			),
 		).
 		Result()
@@ -58,7 +53,7 @@ func (d *dmaasBackup) createBackup(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.Bac
 		ObjectMeta(
 			builder.WithLabels(
 				// add label using key, value
-				dmaasBackupLabel, dbkp.Name,
+				v1alpha1.DMaaSBackupLabelKey, dbkp.Name,
 			),
 		).
 		Result()
