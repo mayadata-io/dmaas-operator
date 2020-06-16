@@ -373,89 +373,6 @@ spec:
         status:
           description: DMaaSBackupStatus represents the status of DMaaSBackup resource
           properties:
-            latestBackupStatus:
-              description: LatestBackupStatus represents the status of latest backup
-                created by DMaaSBackup
-              properties:
-                backupName:
-                  description: BackupName represents the name of the backup, which
-                    is in-progress or completed recently
-                  type: string
-                completionTimestamp:
-                  description: CompletionTimestamp represents the completion time
-                    of the given Backup
-                  format: date-time
-                  nullable: true
-                  type: string
-                phase:
-                  description: Phase represents the given Backup Phase
-                  type: string
-                snapshotStatus:
-                  description: SnapshotStatus represents the list of snapshotStatus
-                  items:
-                    description: SnapshotStatusDetails represents the snapshot information
-                      and it's status
-                    properties:
-                      completionTimestamp:
-                        description: CompletionTimestamp represents the completion
-                          time of snapshot
-                        format: date-time
-                        nullable: true
-                        type: string
-                      phase:
-                        description: Phase represents the phase of PodVolumeBackup
-                          or CStorBackup resource
-                        type: string
-                      progress:
-                        description: Progress represents the progress of the snapshot
-                        properties:
-                          bytesDone:
-                            description: BytesDone represents the amount of data snapshotted
-                              This value is updated from PodVolumeBackup or CStorBackup
-                              resource
-                            type: integer
-                          totalSize:
-                            description: TotalBytes represents the total amount of
-                              data for the snapshot This value is updated from PodVolumeBackup
-                              or CStorBackup resource
-                            type: integer
-                        required:
-                        - bytesDone
-                        - totalSize
-                        type: object
-                      pvName:
-                        description: PVName represents the PV name on which snapshot
-                          is created
-                        type: string
-                      snapshotID:
-                        description: SnapshotID represents the ID of the snapshot
-                        type: string
-                      snapshotType:
-                        description: Type represents the type of snapshot
-                        type: string
-                      startTimestamp:
-                        description: StartTimestamp represents the start time of snapshot
-                        format: date-time
-                        nullable: true
-                        type: string
-                    required:
-                    - phase
-                    - progress
-                    - pvName
-                    - snapshotID
-                    - snapshotType
-                    type: object
-                  nullable: true
-                  type: array
-                startTimestamp:
-                  description: StartTimestamp represents the Backup start time
-                  format: date-time
-                  nullable: true
-                  type: string
-              required:
-              - backupName
-              - phase
-              type: object
             message:
               description: Message represents the cause/action/outcome of DMaaSBackup
               type: string
@@ -495,6 +412,12 @@ spec:
                 type: object
               nullable: true
               type: array
+            veleroSchedulesUpdatedTimestamp:
+              description: VeleroSchedulesUpdatedTimestamp represents the last time
+                veleroschedules got updated
+              format: date-time
+              nullable: true
+              type: string
           required:
           - phase
           type: object
