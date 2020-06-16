@@ -120,9 +120,8 @@ func (d *dmaasBackupController) processBackup(key string) error {
 	}
 
 	dbkp := original.DeepCopy()
-
 	// initialize dmaas backup's meta data and status
-	initializeDMaaSBackupMetaAndStatus(dbkp)
+	initializeDMaaSBackup(dbkp)
 
 	switch dbkp.DeletionTimestamp {
 	case nil:
@@ -131,6 +130,9 @@ func (d *dmaasBackupController) processBackup(key string) error {
 			log.WithError(err).Errorf("failed to execute backup")
 		}
 	default:
+		if !isFinalizerExists(dbkp.ObjectMeta, v1alpha1.DMaaSFinalizer){
+			break
+		}
 		err = d.backupper.Delete(dbkp, log)
 		if err == nil {
 			log.Infof("All resources for dmaasbackup deleted")
@@ -216,31 +218,33 @@ func shouldProcessDMaaSBackup(dbkp v1alpha1.DMaaSBackup) (shouldProcess bool, ms
 	return
 }
 
-// initializeDMaaSBackupMetaAndStatus update the dmaasbackup metadata and status
+// initializeDMaaSBackup update the dmaasbackup status
 // with required value
-func initializeDMaaSBackupMetaAndStatus(dbkp *v1alpha1.DMaaSBackup) {
+func initializeDMaaSBackup(dbkp *v1alpha1.DMaaSBackup) {
 	dbkp.Status.Reason = ""
-
-	if dbkp.Status.Phase == v1alpha1.DMaaSBackupPhaseInProgress {
-		// We already initialized this dmaasbackup
-		return
-	}
-
-	// add dmaas operator finalizer
-	dbkp.ObjectMeta = addDMaaSFinalizer(dbkp.ObjectMeta)
 
 	// set dmaasbackup phase InProgress
 	dbkp.Status.Phase = v1alpha1.DMaaSBackupPhaseInProgress
 }
 
-// addDMaaSFinalizer add dmaas operator related finalizer to given object
-func addDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
+// isFinalizerExists returns true if given 'f' exists in finalizer
+// else returns false
+func isFinalizerExists(obj metav1.ObjectMeta, f string) bool {
 	finalizers := obj.GetFinalizers()
 	for _, finalizer := range finalizers {
-		if finalizer == v1alpha1.DMaaSFinalizer {
-			return obj
+		if finalizer == f {
+			return true
 		}
 	}
+	return false
+}
+
+// addDMaaSFinalizer add dmaas operator related finalizer to given object
+func addDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
+	if isFinalizerExists(obj, v1alpha1.DMaaSFinalizer) {
+		return obj
+	}
+	finalizers := obj.GetFinalizers()
 
 	obj.SetFinalizers(append(finalizers, v1alpha1.DMaaSFinalizer))
 	return obj
