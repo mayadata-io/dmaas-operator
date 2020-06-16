@@ -42,7 +42,7 @@ type controller struct {
 	init func() error
 
 	// reconcile is main function, which process the event
-	reconcile func(key string) error
+	reconcile func(key string) (bool, error)
 
 	// reconcilePeriod represent interval at which reconciliation will be executed, default value is 1s
 	reconcilePeriod time.Duration
@@ -159,8 +159,12 @@ func (c *controller) processNextWorkItem() bool {
 		c.workQueue.Forget(key)
 	}
 
-	err := c.reconcile(key)
+	shouldRequeue, err := c.reconcile(key)
 	if err == nil {
+		if shouldRequeue {
+			c.workQueue.Add(obj)
+			return true
+		}
 		c.workQueue.Forget(key)
 		return true
 	}

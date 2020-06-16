@@ -16,9 +16,10 @@ package controller
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
 	informers "github.com/mayadata-io/dmaas-operator/pkg/generated/informers/externalversions/mayadata.io/v1alpha1"
-	"github.com/sirupsen/logrus"
 
 	apimachineryclock "k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/client-go/kubernetes"
@@ -75,10 +76,10 @@ func NewPreBackupActionController(
 	return c
 }
 
-func (p *preBackupActionController) processPreBackupAction(key string) error {
+func (p *preBackupActionController) processPreBackupAction(key string) (bool, error) {
 	log := p.logger.WithField("key", key)
 
 	log.Infof("processing prebackupaction")
 
-	return nil
+	return false, nil
 }

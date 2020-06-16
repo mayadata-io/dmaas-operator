@@ -14,36 +14,20 @@ limitations under the License.
 package dmaasbackup
 
 import (
-	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 	"github.com/pkg/errors"
+
+	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
 
 func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBackup) error {
 	d.logger.Debug("Processing non fullbackup")
+	defer d.logger.Debug("Processing non-fullbackup completed")
 
 	// non full backup schedule can be of two types, schedule or normal backup
-	// check for scheduled backup
-	if dbkp.Spec.VeleroScheduleSpec.Schedule != "" {
-		// dmaasbackup has schedule spec
-		// create schedule if not created
-		if len(dbkp.Status.VeleroSchedules) == 0 {
-			schedule, err := d.createSchedule(dbkp)
-			if err != nil {
-				d.logger.WithError(err).
-					Errorf("failed to create schedule")
-				return errors.Wrapf(err, "failed to create schedule")
-			}
-			// add schedule information to dmaasbackup
-			appendVeleroSchedule(dbkp, schedule)
-			d.logger.Infof("Schedule=%s created", schedule.Name)
-			return nil
-		}
-		// schedule is already created
-		return nil
-	}
-
+	// check for non-scheduled backup
 	// dmaasbackup have information for normal backup
-	if dbkp.Status.VeleroBackupName == nil {
+	if dbkp.Status.VeleroBackupName == nil &&
+		dbkp.Spec.VeleroScheduleSpec.Schedule == "" {
 		// need to create velero backup
 		bkp, err := d.createBackup(dbkp)
 		if err != nil {
@@ -54,7 +38,49 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 		bkpName := bkp.Name
 		dbkp.Status.VeleroBackupName = &bkpName
 		d.logger.Infof("Backup=%s created", bkpName)
+		return nil
 	}
 
+	// check for scheduled backup
+	if dbkp.Spec.VeleroScheduleSpec.Schedule == "" {
+		// not velero schedule spec
+		return nil
+	}
+
+	// We may have queued empty velero schedule entry with name for schedule creation
+	// check if such entry exist
+	dummySchedule := getDummyVeleroSchedule(dbkp)
+
+	if dummySchedule != nil {
+		// we have queued dummy schedule for schedule creation in last reconciliation
+		// let's create new schedule using name from dummy schedule
+		// and update it
+		newSchedule, err := d.createScheduleUsingName(dbkp, dummySchedule.ScheduleName)
+		if err != nil {
+			// TODO : check for already created schedule
+			d.logger.WithError(err).Errorf("failed to create new schedule")
+			return err
+		}
+		updateDummyVeleroSchedule(dbkp, dummySchedule, newSchedule)
+		return nil
+	}
+
+	// no dummy schedule entry exists in veleroschedule
+	// check if veleroschedule is empty or not
+	if len(dbkp.Status.VeleroSchedules) != 0 {
+		d.logger.Debug("Velero schedule already created")
+		return nil
+	}
+
+	// we haven't added dummy schedule for schedule creation
+	// let's add dummy schedule in veleroschedule to reserve schedule name
+	newScheduleName := d.generateScheduleName(*dbkp)
+
+	addDummyVeleroSchedule(dbkp, newScheduleName)
+
+	// set shouldRequeue true so that we can reconcile this object immediately
+	d.shouldRequeue = true
+
+	d.logger.Infof("Schedule=%s is queued for creation", newScheduleName)
 	return nil
 }

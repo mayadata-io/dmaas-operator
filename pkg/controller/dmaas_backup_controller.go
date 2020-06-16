@@ -94,7 +94,9 @@ func NewDMaaSBackupController(
 	return c
 }
 
-func (d *dmaasBackupController) processBackup(key string) error {
+func (d *dmaasBackupController) processBackup(key string) (bool, error) {
+	var shouldRequeue bool
+
 	log := d.logger.WithField("dmaasbackup", key)
 
 	log.Debug("Processing dmaasbackup")
@@ -102,21 +104,21 @@ func (d *dmaasBackupController) processBackup(key string) error {
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		log.WithError(err).Errorf("failed to split key")
-		return nil
+		return shouldRequeue, nil
 	}
 
 	original, err := d.lister.DMaaSBackups(ns).Get(name)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Debug("dmaasbackup not found")
-			return nil
+			return shouldRequeue, nil
 		}
-		return errors.Wrapf(err, "failed to get dmaasbackup")
+		return shouldRequeue, errors.Wrapf(err, "failed to get dmaasbackup")
 	}
 
 	if yes, msg := shouldProcessDMaaSBackup(*original); !yes {
 		log.Debug(msg)
-		return nil
+		return shouldRequeue, nil
 	}
 
 	dbkp := original.DeepCopy()
@@ -125,7 +127,7 @@ func (d *dmaasBackupController) processBackup(key string) error {
 
 	switch dbkp.DeletionTimestamp {
 	case nil:
-		err = d.backupper.Execute(dbkp, log)
+		shouldRequeue, err = d.backupper.Execute(dbkp, log)
 		if err != nil {
 			log.WithError(err).Errorf("failed to execute backup")
 		}
@@ -154,7 +156,9 @@ func (d *dmaasBackupController) processBackup(key string) error {
 	if err != nil {
 		log.WithError(err).Error("failed to update dmaasbackup")
 	}
-	return nil
+
+	log.Debugf("dmaasbackup updated and reconciliation completed with shouldRequeue:%v", shouldRequeue)
+	return shouldRequeue, nil
 }
 
 func patchBackup(original, updated *v1alpha1.DMaaSBackup, client clientset.Interface) (*v1alpha1.DMaaSBackup, error) {
@@ -192,6 +196,8 @@ func (d *dmaasBackupController) syncAll() {
 		if yes, _ := shouldProcessDMaaSBackup(*dbkp); !yes {
 			continue
 		}
+
+		d.logger.Debugf("Adding dmaasbackup=%v for reconciliation", dbkp.Name)
 		d.enqueue(dbkp)
 	}
 }
