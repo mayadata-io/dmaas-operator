@@ -31,6 +31,10 @@ before_script:
 
 script:
   - make build && make image || travis_terminate 1;
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+     docker login -u "$DOCKER_USER" -p "$DOCKER_PASS";
+     make push-image;
+    fi
 
 notifications:
   email:
@@ -41,8 +45,3 @@ branches:
   except:
     - /^*-v[0-9]/
 
-after_success:
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-     docker login -u "$DOCKER_USER" -p "$DOCKER_PASS";
-     make push-image;
-    fi
