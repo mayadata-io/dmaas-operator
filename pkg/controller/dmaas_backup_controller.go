@@ -132,7 +132,7 @@ func (d *dmaasBackupController) processBackup(key string) (bool, error) {
 			log.WithError(err).Errorf("failed to execute backup")
 		}
 	default:
-		if !isFinalizerExists(dbkp.ObjectMeta, v1alpha1.DMaaSFinalizer){
+		if !isFinalizerExists(dbkp.ObjectMeta, v1alpha1.DMaaSFinalizer) {
 			break
 		}
 		err = d.backupper.Delete(dbkp, log)

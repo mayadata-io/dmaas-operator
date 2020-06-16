@@ -16,29 +16,16 @@ package dmaasbackup
 import (
 	"github.com/pkg/errors"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
-	velerobackup "github.com/vmware-tanzu/velero/pkg/backup"
 	velerobuilder "github.com/vmware-tanzu/velero/pkg/builder"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
 
 func (d *dmaasBackup) createSchedule(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.Schedule, error) {
 	name := d.generateScheduleName(*dbkp)
-	scheduleObj := velerobuilder.ForSchedule(d.veleroNs, name).
-		Template(dbkp.Spec.VeleroScheduleSpec.Template).
-		CronSchedule(dbkp.Spec.VeleroScheduleSpec.Schedule).
-		ObjectMeta(
-			velerobuilder.WithLabels(
-				// add label using key, value
-				v1alpha1.DMaaSBackupLabelKey, dbkp.Name,
-			),
-		).
-		Result()
-
-	return d.scheduleClient.Create(scheduleObj)
+	return d.createScheduleUsingName(dbkp, name)
 }
 
 func (d *dmaasBackup) createScheduleUsingName(dbkp *v1alpha1.DMaaSBackup, name string) (*velerov1api.Schedule, error) {
@@ -165,98 +152,6 @@ lastschedule_cleanup:
 
 	lastSchedule.Status = v1alpha1.Deleted
 	d.logger.Infof("Schedule=%s deleted", lastSchedule.ScheduleName)
-	return nil
-}
-
-// cleanupOldSchedule remove the old schedules if fullbackup retention mentioned
-// TODO : need to fix for retention count for restic
-func (d *dmaasBackup) cleanupOldSchedule(dbkp *v1alpha1.DMaaSBackup) error {
-	if dbkp.Spec.PeriodicFullBackupCfg.CronTime == "" {
-		return nil
-	}
-
-	d.logger.Debug("Processing cleanup for schedule")
-
-	if len(dbkp.Status.VeleroSchedules) == 0 {
-		d.logger.Debug("No schedule present in status")
-		return nil
-	}
-
-	if dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold == 0 {
-		d.logger.Debug("Skipping cleanup since FullBackupRetentionThreshold is 0")
-		return nil
-	}
-
-	// get latest velero schedule
-	latestSchedule := getLatestVeleroSchedule(dbkp)
-	if latestSchedule.Status != v1alpha1.Active {
-		return errors.Errorf("schedule=%s is having state=%s, expected state=%s",
-			latestSchedule.ScheduleName,
-			latestSchedule.Status,
-			v1alpha1.Active,
-		)
-	}
-
-	// since first schedule is active one, we will skip it
-	for index, schedule := range dbkp.Status.VeleroSchedules[1:] {
-		if schedule.Status != v1alpha1.Active {
-			continue
-		}
-
-		// this is stale schedule, need to delete it
-		err := d.scheduleClient.Delete(schedule.ScheduleName, &metav1.DeleteOptions{})
-		if err != nil && !apierrors.IsNotFound(err) {
-			d.logger.Warningf("failed to delete schedule=%s err=%s, will retry in next sync",
-				schedule.ScheduleName,
-				err,
-			)
-			continue
-		}
-
-		// schedule is deleted, update it with deleted state
-		dbkp.Status.VeleroSchedules[index+1].Status = v1alpha1.Deleted
-	}
-
-	// delete backups for schedule as per fullBackupRetentionThreshold
-	// we need to retain the backups created by current active schedule and
-	// last 'FullBackupRetentionThreshold' number of schedules.
-	requiredSchedule := dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold + 1
-
-	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule:] {
-		if schedule.Status == v1alpha1.Deleted {
-			continue
-		}
-
-		backupList, err := d.backupLister.List(
-			labels.SelectorFromSet(map[string]string{
-				v1alpha1.DMaaSBackupLabelKey:  dbkp.Name,
-				velerov1api.ScheduleNameLabel: schedule.ScheduleName,
-			}),
-		)
-		if err != nil {
-			d.logger.Warningf("failed to list backup for schedule=%s err=%s, will retry in next sync",
-				schedule.ScheduleName,
-				err,
-			)
-		}
-		if len(backupList) == 0 {
-			// no backup exists for schedule
-			dbkp.Status.VeleroSchedules[requiredSchedule+index].Status = v1alpha1.Erased
-		}
-
-		// create delete request for all backup of the schedule
-		for _, bkp := range backupList {
-			deleteRequest := velerobackup.NewDeleteBackupRequest(bkp.Name, string(bkp.UID))
-			if _, err := d.deleteBackupClient.Create(deleteRequest); err != nil {
-				d.logger.Warningf("failed to create deleteRequest for backup=%s err=%s",
-					bkp.Name,
-					err,
-				)
-			}
-		}
-		// setting status will be handle by next sync when all the backups for this schedules
-		// are deleted
-	}
 	return nil
 }
 

@@ -101,22 +101,6 @@ func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogg
 	}
 
 	return d.shouldRequeue, err
-
-	/*
-		TODO following code required for retention count handling
-			if err != nil {
-				return d.shouldRequeue, errors.Wrapf(err, "failed to process dmaasbackup")
-			}
-
-				if err != nil {
-					return d.shouldRequeue, errors.Wrapf(err, "failed to perform cleanup for old schedule")
-				}
-
-				d.logger.Debug("updating backup information")
-				// update latest backup information for dmaasbackup
-				err = d.updateBackupInfo(obj)
-			return d.shouldRequeue, err
-	*/
 }
 
 func (d *dmaasBackup) Delete(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error {
