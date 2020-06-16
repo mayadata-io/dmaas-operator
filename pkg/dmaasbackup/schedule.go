@@ -33,7 +33,7 @@ func (d *dmaasBackup) createSchedule(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.S
 		ObjectMeta(
 			velerobuilder.WithLabels(
 				// add label using key, value
-				dmaasBackupLabel, dbkp.Name,
+				v1alpha1.DMaaSBackupLabelKey, dbkp.Name,
 			),
 		).
 		Result()
@@ -229,7 +229,7 @@ func (d *dmaasBackup) cleanupOldSchedule(dbkp *v1alpha1.DMaaSBackup) error {
 
 		backupList, err := d.backupLister.List(
 			labels.SelectorFromSet(map[string]string{
-				dmaasBackupLabel:              dbkp.Name,
+				v1alpha1.DMaaSBackupLabelKey:  dbkp.Name,
 				velerov1api.ScheduleNameLabel: schedule.ScheduleName,
 			}),
 		)
