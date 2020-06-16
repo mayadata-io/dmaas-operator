@@ -30,7 +30,7 @@ GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 
 # Where to push the docker image.
-REGISTRY ?= mayadata.io
+REGISTRY ?= mayadataio
 
 BIN=dmaas-operator
 
@@ -67,7 +67,7 @@ image: build
 	--build-arg DBUILD_SITE_URL=$(DBUILD_SITE_URL) \
 	-t $(IMAGE):$(VERSION) -f Dockerfile .
 
-deploy-image: image
+push-image: image
 	@echo "push: $(IMAGE):$(VERSION)"
 	@docker push $(IMAGE):$(VERSION)
 ifeq ($(TAG_LATEST), true)
