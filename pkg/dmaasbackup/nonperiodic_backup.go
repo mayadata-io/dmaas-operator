@@ -55,13 +55,12 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 	emptySchedule := getEmptyQueuedVeleroSchedule(dbkp)
 
 	if emptySchedule != nil {
-		// we have queued dummy schedule for schedule creation in last reconciliation
-		// let's create new schedule using name from dummy schedule
+		// we have queued empty schedule for schedule creation in last reconciliation
+		// let's create new schedule using name from empty schedule
 		// and update it
 		newSchedule, err := d.createScheduleUsingName(dbkp, emptySchedule.ScheduleName)
 		if err != nil {
 			if !apierrors.IsAlreadyExists(err) {
-				// TODO : check for already created schedule
 				d.logger.WithError(err).Errorf("failed to create new schedule")
 				return err
 			}
@@ -70,15 +69,15 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 		return nil
 	}
 
-	// no dummy schedule entry exists in veleroschedule
+	// no empty schedule entry exists in veleroschedule
 	// check if veleroschedule is empty or not
 	if len(dbkp.Status.VeleroSchedules) != 0 {
 		d.logger.Debug("Velero schedule already created")
 		return nil
 	}
 
-	// we haven't added dummy schedule for schedule creation
-	// let's add dummy schedule in veleroschedule to reserve schedule name
+	// we haven't added empty schedule for schedule creation
+	// let's add empty schedule in veleroschedule to reserve schedule name
 	newScheduleName := d.generateScheduleName(*dbkp)
 
 	addEmptyVeleroSchedule(dbkp, newScheduleName)

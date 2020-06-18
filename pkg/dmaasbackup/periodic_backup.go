@@ -32,26 +32,27 @@ func (d *dmaasBackup) processPeriodicConfigSchedule(obj *v1alpha1.DMaaSBackup) e
 	// check if such entry exist
 	emptySchedule := getEmptyQueuedVeleroSchedule(obj)
 	if emptySchedule != nil {
-		// we have queued dummy schedule for full backup
-		// let's create new schedule using name from dummy schedule
+		// we have queued empty schedule for full backup
+		// let's create new schedule using name from empty schedule
 		// and update it
 		newSchedule, err := d.createScheduleUsingName(obj, emptySchedule.ScheduleName)
 		if err != nil {
 			if !apierrors.IsAlreadyExists(err) {
-				// TODO : check for already created schedule
 				d.logger.WithError(err).Errorf("failed to create new schedule")
 				return err
 			}
 		}
 		updateEmptyQueuedVeleroSchedule(obj, emptySchedule, newSchedule)
 
-		// TODO MRP previous
-		lastSchedule := getLastVeleroSchedule(obj)
+		lastSchedule := getPreviousVeleroSchedule(obj)
 		if lastSchedule == nil {
-			// there is not last created schedule
+			// there is no last created schedule
 			return nil
 		}
 
+		// Delete the old active schedule
+		// Note: if any backups pending for this schedule exists then
+		// it won't be impacted by this operator and will be executed in queue
 		err = d.scheduleClient.Delete(
 			lastSchedule.ScheduleName,
 			&metav1.DeleteOptions{},

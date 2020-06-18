@@ -44,8 +44,8 @@ func getLatestVeleroSchedule(dbkp *v1alpha1.DMaaSBackup) *v1alpha1.VeleroSchedul
 	return &dbkp.Status.VeleroSchedules[0]
 }
 
-// getLastVeleroSchedule return the last created schedule from status.veleroschedule
-func getLastVeleroSchedule(dbkp *v1alpha1.DMaaSBackup) *v1alpha1.VeleroScheduleDetails {
+// getPreviousVeleroSchedule return the last created schedule from status.veleroschedule
+func getPreviousVeleroSchedule(dbkp *v1alpha1.DMaaSBackup) *v1alpha1.VeleroScheduleDetails {
 	if len(dbkp.Status.VeleroSchedules) < 2 {
 		return nil
 	}
