@@ -33,56 +33,58 @@ import (
 // DMaaSBackupper execute operations on dmaasbackup resource
 type DMaaSBackupper interface {
 	// Execute creates the velero backup for given dmaasbackup
-	Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error
+	Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) (bool, error)
 
 	// Delete perform the cleanup required as part of dmaasbackup deletion
 	Delete(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error
 }
 
 type dmaasBackup struct {
-	velerons       string
-	dmaasClient    clientset.Interface
-	backupLister   velerov1lister.BackupNamespaceLister
-	pvbLister      velerov1lister.PodVolumeBackupLister
-	backupClient   velerov1.BackupInterface
-	scheduleClient velerov1.ScheduleInterface
-	logger         logrus.FieldLogger
-	clock          apimachineryclock.Clock
+	veleroNs           string
+	dmaasClient        clientset.Interface
+	backupLister       velerov1lister.BackupNamespaceLister
+	pvbLister          velerov1lister.PodVolumeBackupLister
+	backupClient       velerov1.BackupInterface
+	scheduleClient     velerov1.ScheduleInterface
+	deleteBackupClient velerov1.DeleteBackupRequestInterface
+	logger             logrus.FieldLogger
+	clock              apimachineryclock.Clock
+
+	// shouldRequeue should be set if immediate reconciliation is needed for object
+	shouldRequeue bool
 }
 
 // NewDMaaSBackupper returns the interface to execute operation on dmaasbackup resource
 func NewDMaaSBackupper(
-	velerons string,
+	veleroNs string,
 	dmaasClient clientset.Interface,
 	veleroClient velerov1.VeleroV1Interface,
 	veleroInformer velerov1informer.Interface,
 	clock apimachineryclock.Clock,
 ) DMaaSBackupper {
 	return &dmaasBackup{
-		velerons:       velerons,
-		dmaasClient:    dmaasClient,
-		backupClient:   veleroClient.Backups(velerons),
-		scheduleClient: veleroClient.Schedules(velerons),
-		clock:          clock,
-		backupLister:   veleroInformer.Backups().Lister().Backups(velerons),
-		pvbLister:      veleroInformer.PodVolumeBackups().Lister(),
+		veleroNs:           veleroNs,
+		dmaasClient:        dmaasClient,
+		backupClient:       veleroClient.Backups(veleroNs),
+		scheduleClient:     veleroClient.Schedules(veleroNs),
+		deleteBackupClient: veleroClient.DeleteBackupRequests(veleroNs),
+		clock:              clock,
+		backupLister:       veleroInformer.Backups().Lister().Backups(veleroNs),
+		pvbLister:          veleroInformer.PodVolumeBackups().Lister(),
+		shouldRequeue:      false,
 	}
 }
 
-func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error {
+func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) (bool, error) {
 	var err error
 
 	d.logger = logger
 
-	d.logger.Debug("updating schedule information")
+	d.logger.Debug("Executing dmaasbackup")
+	defer d.logger.Debug("Execution of dmaasbackup completed")
 
-	// check for stale velero schedule created by dmaas-operator
-	// This is necessary because there are chances where operator has created
-	// required schedule/backup but missed to update the dmaasbackup object, due to error or restart
-	err = d.updateScheduleInfo(obj)
-	if err != nil {
-		return errors.Wrapf(err, "failed to check schedule information")
-	}
+	// reset shouldRequeue
+	d.shouldRequeue = false
 
 	if obj.Spec.PeriodicFullBackupCfg.CronTime != "" {
 		err = d.processPeriodicConfigSchedule(obj)
@@ -90,20 +92,7 @@ func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogg
 		err = d.processNonperiodicConfigSchedule(obj)
 	}
 
-	if err != nil {
-		return errors.Wrapf(err, "failed to process dmaasbackup")
-	}
-
-	err = d.cleanupOldSchedule(obj)
-	if err != nil {
-		return errors.Wrapf(err, "failed to perform cleanup for old schedule")
-	}
-
-	d.logger.Debug("updating backup information")
-	// update latest backup information for dmaasbackup
-	err = d.updateBackupInfo(obj)
-
-	return err
+	return d.shouldRequeue, err
 }
 
 func (d *dmaasBackup) Delete(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error {

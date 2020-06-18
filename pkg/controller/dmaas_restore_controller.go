@@ -16,9 +16,10 @@ package controller
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
 	informers "github.com/mayadata-io/dmaas-operator/pkg/generated/informers/externalversions/mayadata.io/v1alpha1"
-	"github.com/sirupsen/logrus"
 
 	velero "github.com/vmware-tanzu/velero/pkg/generated/clientset/versioned"
 	apimachineryclock "k8s.io/apimachinery/pkg/util/clock"
@@ -84,10 +85,10 @@ func NewDMaaSRestoreController(
 	return c
 }
 
-func (d *dmaasRestoreController) processRestore(key string) error {
+func (d *dmaasRestoreController) processRestore(key string) (bool, error) {
 	log := d.logger.WithField("key", key)
 
 	log.Infof("processing restore")
 
-	return nil
+	return false, nil
 }

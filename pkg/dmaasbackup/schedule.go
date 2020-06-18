@@ -15,7 +15,6 @@ package dmaasbackup
 
 import (
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
-	"github.com/vmware-tanzu/velero/pkg/builder"
 	velerobuilder "github.com/vmware-tanzu/velero/pkg/builder"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -24,11 +23,15 @@ import (
 
 func (d *dmaasBackup) createSchedule(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.Schedule, error) {
 	name := d.generateScheduleName(*dbkp)
-	scheduleObj := velerobuilder.ForSchedule(d.velerons, name).
+	return d.createScheduleUsingName(dbkp, name)
+}
+
+func (d *dmaasBackup) createScheduleUsingName(dbkp *v1alpha1.DMaaSBackup, name string) (*velerov1api.Schedule, error) {
+	scheduleObj := velerobuilder.ForSchedule(d.veleroNs, name).
 		Template(dbkp.Spec.VeleroScheduleSpec.Template).
 		CronSchedule(dbkp.Spec.VeleroScheduleSpec.Schedule).
 		ObjectMeta(
-			builder.WithLabels(
+			velerobuilder.WithLabels(
 				// add label using key, value
 				v1alpha1.DMaaSBackupLabelKey, dbkp.Name,
 			),
@@ -40,10 +43,10 @@ func (d *dmaasBackup) createSchedule(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.S
 
 func (d *dmaasBackup) createBackup(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.Backup, error) {
 	name := d.generateBackupName(*dbkp)
-	backupObj := velerobuilder.ForBackup(d.velerons, name).
+	backupObj := velerobuilder.ForBackup(d.veleroNs, name).
 		FromSchedule(&velerov1api.Schedule{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: d.velerons,
+				Namespace: d.veleroNs,
 				Name:      name,
 			},
 			Spec: velerov1api.ScheduleSpec{
@@ -51,7 +54,7 @@ func (d *dmaasBackup) createBackup(dbkp *v1alpha1.DMaaSBackup) (*velerov1api.Bac
 			},
 		}).
 		ObjectMeta(
-			builder.WithLabels(
+			velerobuilder.WithLabels(
 				// add label using key, value
 				v1alpha1.DMaaSBackupLabelKey, dbkp.Name,
 			),
@@ -67,17 +70,4 @@ func (d *dmaasBackup) generateScheduleName(dbkp v1alpha1.DMaaSBackup) string {
 
 func (d *dmaasBackup) generateBackupName(dbkp v1alpha1.DMaaSBackup) string {
 	return dbkp.Name
-}
-
-// updateScheduleInfo checks for relevant velero schedule/backup and
-// update the dbkp with schedule/backup details
-func (d *dmaasBackup) updateScheduleInfo(dbkp *v1alpha1.DMaaSBackup) error {
-	// TODO
-	return nil
-}
-
-// cleanupOldSchedule remove the old schedules if fullbackup retention mentioned
-func (d *dmaasBackup) cleanupOldSchedule(dbkp *v1alpha1.DMaaSBackup) error {
-	// TODO
-	return nil
 }

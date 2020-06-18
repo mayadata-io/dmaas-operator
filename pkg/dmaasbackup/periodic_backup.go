@@ -16,58 +16,86 @@ package dmaasbackup
 import (
 	"time"
 
-	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
 
 func (d *dmaasBackup) processPeriodicConfigSchedule(obj *v1alpha1.DMaaSBackup) error {
 	d.logger.Debug("Processing fullbackup")
+	defer d.logger.Debug("Processing fullbackup completed")
+
+	// We may have queued empty velero schedule entry with name for schedule creation
+	// check if such entry exist
+	emptySchedule := getEmptyQueuedVeleroSchedule(obj)
+	if emptySchedule != nil {
+		// we have queued empty schedule for full backup
+		// let's create new schedule using name from empty schedule
+		// and update it
+		newSchedule, err := d.createScheduleUsingName(obj, emptySchedule.ScheduleName)
+		if err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				d.logger.WithError(err).Errorf("failed to create new schedule")
+				return err
+			}
+		}
+		updateEmptyQueuedVeleroSchedule(obj, emptySchedule, newSchedule)
+
+		lastSchedule := getPreviousVeleroSchedule(obj)
+		if lastSchedule == nil {
+			// there is no last created schedule
+			return nil
+		}
+
+		// Delete the old active schedule
+		// Note: if any backups pending for this schedule exists then
+		// it won't be impacted by this operator and will be executed in queue
+		err = d.scheduleClient.Delete(
+			lastSchedule.ScheduleName,
+			&metav1.DeleteOptions{},
+		)
+		if err != nil && !apierrors.IsNotFound(err) {
+			d.logger.WithError(err).
+				Errorf("failed to delete schedule=%s", lastSchedule.ScheduleName)
+
+			return errors.Wrapf(err,
+				"failed to delete schedule=%s", lastSchedule.ScheduleName)
+		}
+		lastSchedule.Status = v1alpha1.Deleted
+		d.logger.Infof("Schedule=%s deleted", lastSchedule.ScheduleName)
+		return nil
+	}
 
 	cr, err := cron.ParseStandard(obj.Spec.PeriodicFullBackupCfg.CronTime)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse cronTime")
 	}
 
-	activeSchedule := getActiveVeleroSchedule(obj)
-
+	// we will use the latest schedule from status.veleroschedule
+	// as an active schedule to calculate the due for a full backup
+	activeSchedule := getLatestVeleroSchedule(obj)
 	isDue, nextDue := getNextDue(cr, activeSchedule, d.clock.Now())
 	if !isDue {
 		d.logger.Debugf("Full Backup is not due, next due after %s", nextDue.String())
 		return nil
 	}
 
-	d.logger.Debug("Creating full backup")
+	d.logger.Debug("Updating next schedule name in veleroschedules for full backup")
 
-	// before creating a new schedule, we will delete the old schedule
-	// upon successful deletion we will create a new schedule
-	if activeSchedule != nil {
-		err = d.scheduleClient.Delete(
-			activeSchedule.ScheduleName,
-			&metav1.DeleteOptions{},
-		)
-		if err != nil {
-			if !apierrors.IsNotFound(err) {
-				d.logger.WithError(err).
-					Errorf("failed to delete schedule=%s", activeSchedule.ScheduleName)
-				return errors.Wrapf(err,
-					"failed to delete schedule=%s", activeSchedule.ScheduleName)
-			}
-		}
-		activeSchedule.Status = v1alpha1.Deleted
-		d.logger.Infof("Schedule=%s deleted", activeSchedule.ScheduleName)
-	}
+	// we will add new entry in status.VeleroSchedules with empty status and creationtimestamp
+	// so that in next reconciliation we can create schedule using that entry, and delete the
+	// last active schedule
+	newScheduleName := d.generateScheduleName(*obj)
 
-	// create a new schedule
-	newSchedule, err := d.createSchedule(obj)
-	if err != nil {
-		d.logger.WithError(err).Errorf("failed to create new schedule")
-		return err
-	}
-	appendVeleroSchedule(obj, newSchedule)
-	d.logger.Infof("Schedule=%s created", newSchedule.Name)
+	addEmptyVeleroSchedule(obj, newScheduleName)
+
+	// set shouldRequeue true so that we can reconcile this object immediately
+	d.shouldRequeue = true
+
+	d.logger.Infof("Schedule=%s is queued for creation", newScheduleName)
 	return nil
 }
 
@@ -78,5 +106,5 @@ func getNextDue(cr cron.Schedule, schedule *v1alpha1.VeleroScheduleDetails, now 
 	}
 
 	nextSync := cr.Next(lastSync)
-	return now.After(nextSync), nextSync.Sub(lastSync)
+	return now.After(nextSync), nextSync.Sub(now)
 }

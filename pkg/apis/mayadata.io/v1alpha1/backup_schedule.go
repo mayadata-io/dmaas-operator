@@ -111,6 +111,10 @@ type DMaaSBackupStatus struct {
 	// Message represents the cause/action/outcome of DMaaSBackup
 	Message string `json:"message,omitempty"`
 
+	// VeleroSchedulesUpdatedTimestamp represents the last time veleroschedules got updated
+	// +nullable
+	VeleroSchedulesUpdatedTimestamp metav1.Time `json:"veleroSchedulesUpdatedTimestamp,omitempty"`
+
 	// VeleroSchedules represents the list of Velero Schedule created by DMaaSBackup
 	// +nullable
 	VeleroSchedules []VeleroScheduleDetails `json:"veleroSchedules,omitempty"`
@@ -118,9 +122,6 @@ type DMaaSBackupStatus struct {
 	// VeleroBackupName represents the name of Velero Backup, created by DMaaSBackup,
 	// if VeleroScheduleSpec is having empty schedule
 	VeleroBackupName *string `json:"veleroBackupName,omitempty"`
-
-	// LatestBackupStatus represents the status of latest backup created by DMaaSBackup
-	LatestBackupStatus *LatestBackupStatusDetails `json:"latestBackupStatus,omitempty"`
 }
 
 // VeleroScheduleStatus represents the status of VeleroSchedule
@@ -148,27 +149,6 @@ type VeleroScheduleDetails struct {
 
 	// Status represents the velero schedule status
 	Status VeleroScheduleStatus `json:"status"`
-}
-
-// LatestBackupStatusDetails represents the status of Latest backup
-type LatestBackupStatusDetails struct {
-	// BackupName represents the name of the backup, which is in-progress or completed recently
-	BackupName string `json:"backupName"`
-
-	// Phase represents the given Backup Phase
-	Phase string `json:"phase"`
-
-	// StartTimestamp represents the Backup start time
-	// +nullable
-	StartTimestamp *metav1.Time `json:"startTimestamp,omitempty"`
-
-	// CompletionTimestamp represents the completion time of the given Backup
-	// +nullable
-	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
-
-	// SnapshotStatus represents the list of snapshotStatus
-	// +nullable
-	SnapshotStatus []SnapshotStatusDetails `json:"snapshotStatus,omitempty"`
 }
 
 // SnapshotStatusDetails represents the snapshot information and it's status
