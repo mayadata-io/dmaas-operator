@@ -15,6 +15,7 @@ package dmaasbackup
 
 import (
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
@@ -30,13 +31,15 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 		dbkp.Spec.VeleroScheduleSpec.Schedule == "" {
 		// need to create velero backup
 		bkp, err := d.createBackup(dbkp)
-		if err != nil {
+		if err != nil && !apierrors.IsAlreadyExists(err) {
 			d.logger.WithError(err).
 				Errorf("failed to create backup")
 			return errors.Wrapf(err, "failed to create backup")
 		}
+
 		bkpName := bkp.Name
 		dbkp.Status.VeleroBackupName = &bkpName
+		dbkp.Status.Phase = v1alpha1.DMaaSBackupPhaseCompleted
 		d.logger.Infof("Backup=%s created", bkpName)
 		return nil
 	}
@@ -49,19 +52,21 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 
 	// We may have queued empty velero schedule entry with name for schedule creation
 	// check if such entry exist
-	dummySchedule := getDummyVeleroSchedule(dbkp)
+	emptySchedule := getEmptyQueuedVeleroSchedule(dbkp)
 
-	if dummySchedule != nil {
+	if emptySchedule != nil {
 		// we have queued dummy schedule for schedule creation in last reconciliation
 		// let's create new schedule using name from dummy schedule
 		// and update it
-		newSchedule, err := d.createScheduleUsingName(dbkp, dummySchedule.ScheduleName)
+		newSchedule, err := d.createScheduleUsingName(dbkp, emptySchedule.ScheduleName)
 		if err != nil {
-			// TODO : check for already created schedule
-			d.logger.WithError(err).Errorf("failed to create new schedule")
-			return err
+			if !apierrors.IsAlreadyExists(err) {
+				// TODO : check for already created schedule
+				d.logger.WithError(err).Errorf("failed to create new schedule")
+				return err
+			}
 		}
-		updateDummyVeleroSchedule(dbkp, dummySchedule, newSchedule)
+		updateEmptyQueuedVeleroSchedule(dbkp, emptySchedule, newSchedule)
 		return nil
 	}
 
@@ -76,7 +81,7 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 	// let's add dummy schedule in veleroschedule to reserve schedule name
 	newScheduleName := d.generateScheduleName(*dbkp)
 
-	addDummyVeleroSchedule(dbkp, newScheduleName)
+	addEmptyVeleroSchedule(dbkp, newScheduleName)
 
 	// set shouldRequeue true so that we can reconcile this object immediately
 	d.shouldRequeue = true

@@ -30,19 +30,22 @@ func (d *dmaasBackup) processPeriodicConfigSchedule(obj *v1alpha1.DMaaSBackup) e
 
 	// We may have queued empty velero schedule entry with name for schedule creation
 	// check if such entry exist
-	dummySchedule := getDummyVeleroSchedule(obj)
-	if dummySchedule != nil {
+	emptySchedule := getEmptyQueuedVeleroSchedule(obj)
+	if emptySchedule != nil {
 		// we have queued dummy schedule for full backup
 		// let's create new schedule using name from dummy schedule
 		// and update it
-		newSchedule, err := d.createScheduleUsingName(obj, dummySchedule.ScheduleName)
+		newSchedule, err := d.createScheduleUsingName(obj, emptySchedule.ScheduleName)
 		if err != nil {
-			// TODO : check for already created schedule
-			d.logger.WithError(err).Errorf("failed to create new schedule")
-			return err
+			if !apierrors.IsAlreadyExists(err) {
+				// TODO : check for already created schedule
+				d.logger.WithError(err).Errorf("failed to create new schedule")
+				return err
+			}
 		}
-		updateDummyVeleroSchedule(obj, dummySchedule, newSchedule)
+		updateEmptyQueuedVeleroSchedule(obj, emptySchedule, newSchedule)
 
+		// TODO MRP previous
 		lastSchedule := getLastVeleroSchedule(obj)
 		if lastSchedule == nil {
 			// there is not last created schedule
@@ -86,7 +89,7 @@ func (d *dmaasBackup) processPeriodicConfigSchedule(obj *v1alpha1.DMaaSBackup) e
 	// last active schedule
 	newScheduleName := d.generateScheduleName(*obj)
 
-	addDummyVeleroSchedule(obj, newScheduleName)
+	addEmptyVeleroSchedule(obj, newScheduleName)
 
 	// set shouldRequeue true so that we can reconcile this object immediately
 	d.shouldRequeue = true

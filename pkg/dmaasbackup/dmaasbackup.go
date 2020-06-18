@@ -86,14 +86,6 @@ func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogg
 	// reset shouldRequeue
 	d.shouldRequeue = false
 
-	// check for stale velero schedule created by dmaas-operator
-	// This is necessary because there are chances where operator has created
-	// required schedule/backup but missed to update the dmaasbackup object, due to error or restart
-	err = d.updateScheduleInfo(obj)
-	if err != nil {
-		return d.shouldRequeue, errors.Wrapf(err, "failed to check schedule information")
-	}
-
 	if obj.Spec.PeriodicFullBackupCfg.CronTime != "" {
 		err = d.processPeriodicConfigSchedule(obj)
 	} else {

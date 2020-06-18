@@ -204,23 +204,27 @@ func (d *dmaasBackupController) syncAll() {
 
 // shouldProcessDMaaSBackup return true if dbkp is active or needs reconciliation
 func shouldProcessDMaaSBackup(dbkp v1alpha1.DMaaSBackup) (shouldProcess bool, msg string) {
+	shouldProcess = true
+
+	// if dmaasbackup is in deletion phase we need to process it
+	if dbkp.DeletionTimestamp != nil {
+		return
+	}
+
 	switch dbkp.Spec.State {
 	case v1alpha1.DMaaSBackupStateEmpty, v1alpha1.DMaaSBackupStateActive:
 		// process only active/new dmaasbackup
 		if dbkp.Status.Phase == v1alpha1.DMaaSBackupPhaseCompleted {
 			msg = "DMaaSBackup completed, skipping"
 			shouldProcess = false
-			return
 		}
 	case v1alpha1.DMaaSBackupStatePaused:
 		if dbkp.Status.Phase == v1alpha1.DMaaSBackupPhasePaused {
 			msg = "DMaaSBackup paused, skipping"
 			shouldProcess = false
-			return
 		}
 		// dmaasbackup is paused but it is not processed by operator
 	}
-	shouldProcess = true
 	return
 }
 

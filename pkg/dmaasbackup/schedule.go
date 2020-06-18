@@ -14,10 +14,8 @@ limitations under the License.
 package dmaasbackup
 
 import (
-	"github.com/pkg/errors"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	velerobuilder "github.com/vmware-tanzu/velero/pkg/builder"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
@@ -72,89 +70,4 @@ func (d *dmaasBackup) generateScheduleName(dbkp v1alpha1.DMaaSBackup) string {
 
 func (d *dmaasBackup) generateBackupName(dbkp v1alpha1.DMaaSBackup) string {
 	return dbkp.Name
-}
-
-// updateScheduleInfo checks for relevant velero schedule/backup and
-// update the dbkp with schedule/backup details
-func (d *dmaasBackup) updateScheduleInfo(dbkp *v1alpha1.DMaaSBackup) error {
-	var (
-		schedule *velerov1api.Schedule
-		bkp      *velerov1api.Backup
-		err      error
-	)
-
-	// check if dbkp is having config for non-scheduled backup
-	if yes := isSchedule(*dbkp); !yes {
-		bkp, err = d.backupClient.Get(dbkp.Name, metav1.GetOptions{})
-		if err != nil && !apierrors.IsNotFound(err) {
-			return errors.Wrapf(err, "failed to update scheduleInfo")
-		}
-		if bkp.Name == "" {
-			// Backup could have deleted due to expiration of TTL
-			// TODO: Should we clear backupname from dmaasbackup? and/or recreate?
-			return nil
-		}
-		if dbkp.Status.VeleroBackupName == nil {
-			backupName := bkp.Name
-			dbkp.Status.VeleroBackupName = &backupName
-		}
-		return nil
-	}
-
-	// check for any queued dummy entry in veleroschedule
-	dummySchedule := getDummyVeleroSchedule(dbkp)
-
-	if dummySchedule == nil {
-		// we haven't planned any schedule creation
-		goto lastschedule_cleanup
-	}
-
-	// dummy entry exists in veleroschedule
-	// check for any stale schedules
-
-	// for scheduled backup
-	schedule, err = d.scheduleClient.Get(dummySchedule.ScheduleName, metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// no schedule exists with dummy entry's name
-			return nil
-		}
-		return errors.Wrapf(err, "failed to update scheduleInfo")
-	}
-
-	// we found stale schedule
-	// update dummy entry with schedule details
-	updateDummyVeleroSchedule(dbkp, dummySchedule, schedule)
-
-lastschedule_cleanup:
-	// check if we have any last schedule
-	lastSchedule := getLastVeleroSchedule(dbkp)
-	if lastSchedule == nil {
-		// there is not last created schedule
-		return nil
-	}
-
-	if lastSchedule.Status != v1alpha1.Active {
-		// last schedule is not active
-		return nil
-	}
-
-	err = d.scheduleClient.Delete(
-		lastSchedule.ScheduleName,
-		&metav1.DeleteOptions{},
-	)
-	if err != nil && !apierrors.IsNotFound(err) {
-		d.logger.WithError(err).
-			Errorf("failed to delete stale schedule=%s", lastSchedule.ScheduleName)
-		return errors.Wrapf(err,
-			"failed to delete stale schedule=%s", lastSchedule.ScheduleName)
-	}
-
-	lastSchedule.Status = v1alpha1.Deleted
-	d.logger.Infof("Schedule=%s deleted", lastSchedule.ScheduleName)
-	return nil
-}
-
-func isSchedule(dbkp v1alpha1.DMaaSBackup) bool {
-	return dbkp.Spec.VeleroScheduleSpec.Schedule != ""
 }
