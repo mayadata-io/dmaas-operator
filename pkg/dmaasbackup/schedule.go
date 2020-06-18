@@ -71,3 +71,11 @@ func (d *dmaasBackup) generateScheduleName(dbkp v1alpha1.DMaaSBackup) string {
 func (d *dmaasBackup) generateBackupName(dbkp v1alpha1.DMaaSBackup) string {
 	return dbkp.Name
 }
+
+func (d *dmaasBackup) cleanupOldSchedule(dbkp *v1alpha1.DMaaSBackup) error {
+	if dbkp.Spec.PeriodicFullBackupCfg.CronTime == "" {
+		return nil
+	}
+
+	return d.cleanupPeriodicSchedule(dbkp)
+}

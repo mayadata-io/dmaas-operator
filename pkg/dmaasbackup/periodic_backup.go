@@ -18,8 +18,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
+	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	velerobackup "github.com/vmware-tanzu/velero/pkg/backup"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
@@ -107,4 +110,71 @@ func getNextDue(cr cron.Schedule, schedule *v1alpha1.VeleroScheduleDetails, now 
 
 	nextSync := cr.Next(lastSync)
 	return now.After(nextSync), nextSync.Sub(now)
+}
+
+func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error {
+	d.logger.Debug("Processing cleanup for schedule")
+
+	if dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold == 0 {
+		d.logger.Debug("Skipping cleanup since FullBackupRetentionThreshold is 0")
+		return nil
+	}
+
+	// delete backups for schedule as per fullBackupRetentionThreshold
+	// we need to retain the backups created by current active schedule and
+	// last 'FullBackupRetentionThreshold' number of schedules.
+	requiredSchedule := dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold + 1
+
+	scheduleCount := len(dbkp.Status.VeleroSchedules)
+
+	// check for any empty queued schedule
+	if emptySchedule := getEmptyQueuedVeleroSchedule(dbkp); emptySchedule != nil {
+		scheduleCount--
+	}
+
+	if scheduleCount < requiredSchedule {
+		d.logger.Debugf("Number of schedules are %v, required %v schedules to trigger cleanup",
+			len(dbkp.Status.VeleroSchedules),
+			requiredSchedule)
+		return nil
+	}
+
+	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule:scheduleCount] {
+		if schedule.Status == v1alpha1.Erased {
+			continue
+		}
+
+		backupList, err := d.backupLister.List(
+			labels.SelectorFromSet(map[string]string{
+				v1alpha1.DMaaSBackupLabelKey:  dbkp.Name,
+				velerov1api.ScheduleNameLabel: schedule.ScheduleName,
+			}),
+		)
+		if err != nil {
+			d.logger.Warningf("failed to list backup for schedule=%s err=%s, will retry in next sync",
+				schedule.ScheduleName,
+				err,
+			)
+			continue
+		}
+
+		if len(backupList) == 0 {
+			// no backup exists for schedule
+			dbkp.Status.VeleroSchedules[requiredSchedule+index].Status = v1alpha1.Erased
+		}
+
+		// create delete request for all backup of the schedule
+		for _, bkp := range backupList {
+			deleteRequest := velerobackup.NewDeleteBackupRequest(bkp.Name, string(bkp.UID))
+			if _, err := d.deleteBackupClient.Create(deleteRequest); err != nil {
+				d.logger.Warningf("failed to create deleteRequest for backup=%s err=%s",
+					bkp.Name,
+					err,
+				)
+			}
+		}
+		// setting status will be handle by next sync when all the backups for this schedules
+		// are deleted
+	}
+	return nil
 }

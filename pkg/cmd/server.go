@@ -278,9 +278,18 @@ func (s *server) getSupportedControllers() []controller.Controller {
 func (s *server) startController(controllers []controller.Controller) error {
 	// start the informers
 	s.sharedInformerFactory.Start(s.ctx.Done())
+	s.veleroSharedInformerFactory.Start(s.ctx.Done())
 
 	s.logger.Infof("Waiting for caches to sync")
 	for informer, ok := range s.sharedInformerFactory.WaitForCacheSync(s.ctx.Done()) {
+		if !ok {
+			return errors.Errorf("timed out waiting for caches to sync for informer=%v", informer)
+		}
+		s.logger.WithField("informer", informer).Infof("cache synced")
+	}
+
+	// sync velero cache
+	for informer, ok := range s.veleroSharedInformerFactory.WaitForCacheSync(s.ctx.Done()) {
 		if !ok {
 			return errors.Errorf("timed out waiting for caches to sync for informer=%v", informer)
 		}
