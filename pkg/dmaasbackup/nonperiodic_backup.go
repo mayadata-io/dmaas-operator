@@ -14,8 +14,13 @@ limitations under the License.
 package dmaasbackup
 
 import (
+	"sort"
+
 	"github.com/pkg/errors"
+	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	velerobackup "github.com/vmware-tanzu/velero/pkg/backup"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
@@ -86,5 +91,74 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 	d.shouldRequeue = true
 
 	d.logger.Infof("Schedule=%s is queued for creation", newScheduleName)
+	return nil
+}
+
+type byBackupCreationTimeStamp []*velerov1api.Backup
+
+func (b byBackupCreationTimeStamp) Len() int      { return len(b) }
+func (b byBackupCreationTimeStamp) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b byBackupCreationTimeStamp) Less(i, j int) bool {
+	if (b[i].CreationTimestamp).Equal(&b[j].CreationTimestamp) {
+		return b[i].Name < b[j].Name
+	}
+	return (b[i].CreationTimestamp).Before(&b[j].CreationTimestamp)
+}
+
+func (d *dmaasBackup) cleanupNonPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error {
+	d.logger.Debug("Processing cleanup for non-periodic schedule")
+
+	// get schedule info
+	schedule := getLatestVeleroSchedule(dbkp)
+	if schedule == nil {
+		d.logger.Debug("Schedule is not created")
+		return nil
+	}
+
+	// check if schedule is active or not
+	if schedule.Status != v1alpha1.Active {
+		d.logger.Debug("Schedule is not active")
+		return nil
+	}
+
+	backupList, err := d.backupLister.List(
+		labels.SelectorFromSet(map[string]string{
+			v1alpha1.DMaaSBackupLabelKey:  dbkp.Name,
+			velerov1api.ScheduleNameLabel: schedule.ScheduleName,
+		}),
+	)
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to get list of backup for schedule=%s", schedule.ScheduleName)
+	}
+
+	defer d.logger.Debug("Completed cleanup for non-periodic schedule")
+
+	sort.Sort(sort.Reverse(byBackupCreationTimeStamp(backupList)))
+
+	// We need to retain `fullBackupRetentionThreshold` number of backups
+	// check for completed backup count
+	var completedBackup int
+
+	for _, backup := range backupList {
+		switch backup.Status.Phase {
+		case "", velerov1api.BackupPhaseNew,
+			velerov1api.BackupPhaseInProgress,
+			velerov1api.BackupPhaseDeleting:
+		default:
+			completedBackup++
+		}
+		if completedBackup > dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold {
+			deleteRequest := velerobackup.NewDeleteBackupRequest(backup.Name, string(backup.UID))
+			if _, err := d.deleteBackupClient.Create(deleteRequest); err != nil {
+				d.logger.Warningf("Failed to create deleteRequest for backup=%s err=%s",
+					backup.Name,
+					err,
+				)
+			}
+			d.logger.Infof("Delete request created for backup=%s", backup.Name)
+		}
+	}
+
 	return nil
 }

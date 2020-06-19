@@ -73,8 +73,13 @@ func (d *dmaasBackup) generateBackupName(dbkp v1alpha1.DMaaSBackup) string {
 }
 
 func (d *dmaasBackup) cleanupOldSchedule(dbkp *v1alpha1.DMaaSBackup) error {
-	if dbkp.Spec.PeriodicFullBackupCfg.CronTime == "" {
+	if dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold == 0 {
+		d.logger.Debug("Skipping cleanup since FullBackupRetentionThreshold is 0")
 		return nil
+	}
+
+	if dbkp.Spec.PeriodicFullBackupCfg.CronTime == "" {
+		return d.cleanupNonPeriodicSchedule(dbkp)
 	}
 
 	return d.cleanupPeriodicSchedule(dbkp)
