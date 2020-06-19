@@ -92,7 +92,16 @@ func (d *dmaasBackup) Execute(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogg
 		err = d.processNonperiodicConfigSchedule(obj)
 	}
 
-	return d.shouldRequeue, err
+	if err != nil {
+		return d.shouldRequeue, errors.Wrapf(err, "failed to process dmaasbackup")
+	}
+
+	err = d.cleanupOldSchedule(obj)
+	if err != nil {
+		return d.shouldRequeue, errors.Wrapf(err, "failed to perform cleanup for old schedule")
+	}
+
+	return d.shouldRequeue, nil
 }
 
 func (d *dmaasBackup) Delete(obj *v1alpha1.DMaaSBackup, logger logrus.FieldLogger) error {
