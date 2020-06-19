@@ -125,12 +125,8 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 	// last 'FullBackupRetentionThreshold' number of schedules.
 	requiredSchedule := dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold + 1
 
-	scheduleCount := len(dbkp.Status.VeleroSchedules)
-
-	// check for any empty queued schedule
-	if emptySchedule := getEmptyQueuedVeleroSchedule(dbkp); emptySchedule != nil {
-		scheduleCount--
-	}
+	// scheduleCount = deleted schedules + active schedule(=1)
+	scheduleCount := getDeletedScheduleCount(dbkp) + 1
 
 	if scheduleCount < requiredSchedule {
 		d.logger.Debugf("Number of schedules are %v, required %v schedules to trigger cleanup",
@@ -139,8 +135,9 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 		return nil
 	}
 
-	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule:scheduleCount] {
-		if schedule.Status == v1alpha1.Erased {
+	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule:] {
+		if schedule.Status != v1alpha1.Deleted {
+			// schedule is not deleted, skip it
 			continue
 		}
 

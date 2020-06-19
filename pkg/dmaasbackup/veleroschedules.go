@@ -98,3 +98,13 @@ func updateEmptyQueuedVeleroSchedule(dbkp *v1alpha1.DMaaSBackup, emptyEntry *v1a
 	// sort veleroschedule with descending creationtimestamp
 	sort.Sort(sort.Reverse(ScheduleByCreationTimestamp(dbkp.Status.VeleroSchedules)))
 }
+
+// getDeletedScheduleCount returns the count of deleted schedule for the given dmaasbackup
+func getDeletedScheduleCount(dbkp *v1alpha1.DMaaSBackup) (deletedScheduleCount int) {
+	for _, schedule := range dbkp.Status.VeleroSchedules {
+		if schedule.Status == v1alpha1.Deleted {
+			deletedScheduleCount++
+		}
+	}
+	return
+}
