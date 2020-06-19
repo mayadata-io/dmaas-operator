@@ -113,12 +113,7 @@ func getNextDue(cr cron.Schedule, schedule *v1alpha1.VeleroScheduleDetails, now 
 }
 
 func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error {
-	d.logger.Debug("Processing cleanup for schedule")
-
-	if dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold == 0 {
-		d.logger.Debug("Skipping cleanup since FullBackupRetentionThreshold is 0")
-		return nil
-	}
+	d.logger.Debug("Processing cleanup for periodic schedule")
 
 	// delete backups for schedule as per fullBackupRetentionThreshold
 	// we need to retain the backups created by current active schedule and
@@ -134,6 +129,8 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 			requiredSchedule)
 		return nil
 	}
+
+	defer d.logger.Debug("Cleanup completed for periodic schedule")
 
 	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule:] {
 		if schedule.Status != v1alpha1.Deleted {
