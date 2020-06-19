@@ -17,9 +17,8 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	velerobackup "github.com/vmware-tanzu/velero/pkg/backup"
-
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
+	velerobackup "github.com/vmware-tanzu/velero/pkg/backup"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 
@@ -143,7 +142,9 @@ func (d *dmaasBackup) cleanupNonPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) err
 
 	for _, backup := range backupList {
 		switch backup.Status.Phase {
-		case "", velerov1api.BackupPhaseNew:
+		case "", velerov1api.BackupPhaseNew,
+			velerov1api.BackupPhaseInProgress,
+			velerov1api.BackupPhaseDeleting:
 		default:
 			completedBackup++
 		}

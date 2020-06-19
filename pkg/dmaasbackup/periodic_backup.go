@@ -155,6 +155,7 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 		if len(backupList) == 0 {
 			// no backup exists for schedule
 			dbkp.Status.VeleroSchedules[requiredSchedule+index].Status = v1alpha1.Erased
+			continue
 		}
 
 		// create delete request for all backup of the schedule
