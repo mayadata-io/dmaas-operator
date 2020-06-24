@@ -242,8 +242,12 @@ func TestDeleteBackup(t *testing.T) {
 			if test.deleteErrorMsg != "" {
 				assert.Equal(t, test.deleteErrorMsg, updated.Status.Reason)
 			}
+
+			// verify if finalizer is removed or not
 			if test.shouldRemoveFinalizer {
 				assert.Equal(t, 0, len(updated.GetFinalizers()))
+			} else {
+				assert.Equal(t, len(test.dmaasbackup.GetFinalizers()), len(updated.GetFinalizers()))
 			}
 		})
 	}
