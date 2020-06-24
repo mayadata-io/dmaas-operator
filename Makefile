@@ -75,6 +75,9 @@ ifeq ($(TAG_LATEST), true)
 	docker push $(IMAGE):latest
 endif
 
+test:
+	@go test -race -cover -coverprofile=coverage.out -covermode=atomic ./cmd/... ./pkg/...
+
 clean:
 	@rm -rf .go _output
 

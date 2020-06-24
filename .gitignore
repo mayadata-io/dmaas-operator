@@ -10,4 +10,4 @@ _output
 .DS_Store
 .vscode
 *.diff
-
+coverage.out

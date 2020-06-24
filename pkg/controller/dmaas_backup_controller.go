@@ -18,12 +18,12 @@ import (
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 	clientset "github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned"
 	informers "github.com/mayadata-io/dmaas-operator/pkg/generated/informers/externalversions/mayadata.io/v1alpha1"
+	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -247,17 +247,6 @@ func isFinalizerExists(obj metav1.ObjectMeta, f string) bool {
 		}
 	}
 	return false
-}
-
-// addDMaaSFinalizer add dmaas operator related finalizer to given object
-func addDMaaSFinalizer(obj metav1.ObjectMeta) metav1.ObjectMeta {
-	if isFinalizerExists(obj, v1alpha1.DMaaSFinalizer) {
-		return obj
-	}
-	finalizers := obj.GetFinalizers()
-
-	obj.SetFinalizers(append(finalizers, v1alpha1.DMaaSFinalizer))
-	return obj
 }
 
 // removeDMaaSFinalizer remove dmaas operator related finalizer to given object
