@@ -15,6 +15,7 @@ package builder
 
 import (
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
+	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -65,5 +66,26 @@ func (d *DMaaSBackupBuilder) DeletionTimeStamp(deletionTime *metav1.Time) *DMaaS
 // Finalizer add the given finalizer to dmaasbackup
 func (d *DMaaSBackupBuilder) Finalizer(finalizers ...string) *DMaaSBackupBuilder {
 	d.object.SetFinalizers(finalizers)
+	return d
+}
+
+// PeriodicConfig add the given periodic backup configuration to dmaasbackup
+func (d *DMaaSBackupBuilder) PeriodicConfig(cronTime string, retentionCount int) *DMaaSBackupBuilder {
+	d.object.Spec.PeriodicFullBackupCfg = v1alpha1.PeriodicFullBackupConfig{
+		FullBackupRetentionThreshold: retentionCount,
+		CronTime:                     cronTime,
+	}
+	return d
+}
+
+// Schedule add the given schedule configuration to dmaasbackup
+func (d *DMaaSBackupBuilder) Schedule(schedule velerov1.ScheduleSpec) *DMaaSBackupBuilder {
+	d.object.Spec.VeleroScheduleSpec = schedule
+	return d
+}
+
+// WithVeleroSchedules add veleroschedules to dmaasbackup
+func (d *DMaaSBackupBuilder) WithVeleroSchedules(veleroschedule ...v1alpha1.VeleroScheduleDetails) *DMaaSBackupBuilder {
+	d.object.Status.VeleroSchedules = append(d.object.Status.VeleroSchedules, veleroschedule...)
 	return d
 }
