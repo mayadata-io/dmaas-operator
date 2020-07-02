@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/client-go/testing"
 
@@ -37,10 +38,19 @@ import (
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	velerobuilder "github.com/vmware-tanzu/velero/pkg/builder"
 	velerofake "github.com/vmware-tanzu/velero/pkg/generated/clientset/versioned/fake"
+	velerov1 "github.com/vmware-tanzu/velero/pkg/generated/clientset/versioned/typed/velero/v1"
 	veleroinformer "github.com/vmware-tanzu/velero/pkg/generated/informers/externalversions"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryclock "k8s.io/apimachinery/pkg/util/clock"
+)
+
+const (
+	// namespace for dmaas-operator resources
+	dmaasNamespace = "ns"
+
+	// namespace for velero resources
+	veleroNamespace = "ns"
 )
 
 func newTestScheduleSpec() velerov1api.ScheduleSpec {
@@ -95,14 +105,14 @@ func compareVeleroSchedule(given, expected []v1alpha1.VeleroScheduleDetails) err
 
 func TestProcessPeriodicConfigSchedule(t *testing.T) {
 	dbkpbuilder := func() *builder.DMaaSBackupBuilder {
-		return builder.ForDMaaSBackup("ns", "name")
+		return builder.ForDMaaSBackup(dmaasNamespace, "name")
 	}
 
 	generateSchedule := func(creationTime, cronSchedule string) velerov1api.Schedule {
 		testTime, err := time.Parse("2006-01-02 15:04:05", creationTime)
 		require.NoError(t, err, "Failed to parse schedule time: %v", err)
 
-		schedule := velerobuilder.ForSchedule("ns", "name-"+testTime.Format("20060102150405")).
+		schedule := velerobuilder.ForSchedule(veleroNamespace, "name-"+testTime.Format("20060102150405")).
 			CronSchedule(cronSchedule).
 			Result()
 		schedule.CreationTimestamp = metav1.Time{Time: testTime}
@@ -236,20 +246,13 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 				veleroFakeInformer = veleroinformer.NewSharedInformerFactory(veleroclient, 0)
 			)
 
-			scheduleInventory := map[string]bool{}
-
 			testTime, err := time.Parse("2006-01-02 15:04:05", test.fakeTime)
 			require.NoError(t, err, "Failed to parse fake time: %v", err)
 
+			// add reactor to assign timestamp for new schedules
 			veleroclient.PrependReactor("create", "schedules", func(action core.Action) (bool, runtime.Object, error) {
 				obj := action.(core.CreateAction).GetObject().(*velerov1api.Schedule)
 
-				if test.scheduleCreateError {
-					// inject error
-					return true, nil, &apierrors.StatusError{
-						ErrStatus: metav1.Status{Reason: metav1.StatusReasonInvalid},
-					}
-				}
 				// set creationTimestamp
 				setCreationTime := func(obj *velerov1api.Schedule) error {
 					var ntime time.Time
@@ -271,42 +274,33 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 					return false, obj, err
 				}
 
-				_, exists := scheduleInventory[obj.Name]
-				if exists {
-					return true, obj, &apierrors.StatusError{
-						ErrStatus: metav1.Status{Reason: metav1.StatusReasonAlreadyExists},
-					}
-				}
-
-				// add schedule to scheduleInventory
-				scheduleInventory[obj.Name] = true
-
 				return true, obj, nil
 			})
 
-			if len(test.existingSchedules) != 0 {
-				for _, schedule := range test.existingSchedules {
-					pinnedSchedule := schedule
-					_, err = veleroclient.VeleroV1().Schedules("ns").Create(&pinnedSchedule)
-					require.NoError(t, err, "failed to setup existing schedule err=%v", err)
-				}
+			// add existing schedules
+			for _, schedule := range test.existingSchedules {
+				pinnedSchedule := schedule
+				_, err = veleroclient.VeleroV1().Schedules(veleroNamespace).Create(&pinnedSchedule)
+				require.NoError(t, err, "failed to setup existing schedule err=%v", err)
 			}
 
-			veleroclient.PrependReactor("delete", "schedules", func(action core.Action) (bool, runtime.Object, error) {
-				scheduleName := action.(core.DeleteAction).GetName()
-
-				if test.scheduleDeleteError {
+			// add reactor for backup create error
+			veleroclient.PrependReactor("create", "schedules", func(action core.Action) (bool, runtime.Object, error) {
+				if test.scheduleCreateError {
 					// inject error
 					return true, nil, &apierrors.StatusError{
 						ErrStatus: metav1.Status{Reason: metav1.StatusReasonInvalid},
 					}
 				}
-				_, exists := scheduleInventory[scheduleName]
-				if exists {
-					delete(scheduleInventory, scheduleName)
-				} else {
+				return false, nil, nil
+			})
+
+			// add reactor for backup delete error
+			veleroclient.PrependReactor("delete", "schedules", func(action core.Action) (bool, runtime.Object, error) {
+				if test.scheduleDeleteError {
+					// inject error
 					return true, nil, &apierrors.StatusError{
-						ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound},
+						ErrStatus: metav1.Status{Reason: metav1.StatusReasonInvalid},
 					}
 				}
 
@@ -314,7 +308,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 			})
 
 			backupper := NewDMaaSBackupper(
-				"ns",
+				veleroNamespace,
 				client,
 				veleroclient.VeleroV1(),
 				veleroFakeInformer.Velero().V1(),
@@ -348,7 +342,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 
 func TestCleanupPeriodicSchedule(t *testing.T) {
 	dbkpbuilder := func(retentionCount int) *builder.DMaaSBackupBuilder {
-		return builder.ForDMaaSBackup("ns", "name").
+		return builder.ForDMaaSBackup(dmaasNamespace, "name").
 			PeriodicConfig("*/8 * * * *", retentionCount)
 	}
 
@@ -357,10 +351,10 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 		testTime, err := time.Parse("2006-01-02 15:04:05", scheduleTime)
 		require.NoError(t, err, "Failed to parse schedule time: %v", err)
 
-		return *velerobuilder.ForBackup("ns", "name-"+testTime.Format("20060102150405")+"-"+prefix).
+		return *velerobuilder.ForBackup(veleroNamespace, "name-"+testTime.Format("20060102150405")+"-"+prefix).
 			FromSchedule(&velerov1api.Schedule{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
+					Namespace: veleroNamespace,
 					Name:      "name-" + testTime.Format("20060102150405"),
 				},
 				Spec: velerov1api.ScheduleSpec{},
@@ -379,6 +373,7 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 		dmaasbackup            *v1alpha1.DMaaSBackup
 		existingBackups        []velerov1api.Backup
 		backupDeleteError      bool
+		backupListError        bool
 		expectedVeleroSchedule []v1alpha1.VeleroScheduleDetails // compare only status and name, excluding reserved one
 		expectedBackups        []velerov1api.Backup
 	}{
@@ -496,6 +491,28 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 				generateBackup("2020-06-20 06:00:00", "b1"),
 			},
 		},
+		{
+			name: "should not update schedule status if backup list failed",
+			dmaasbackup: dbkpbuilder(1).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
+				Result(),
+			existingBackups: []velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1"),
+				generateBackup("2020-06-20 06:10:00", "b1"),
+			},
+			backupListError: true,
+			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
+				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
+				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
+				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false),
+			},
+			expectedBackups: []velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1"),
+				generateBackup("2020-06-20 06:10:00", "b1"),
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -510,7 +527,7 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 			var wg sync.WaitGroup
 
 			backupDeleter := func(backupName string) {
-				err := veleroclient.VeleroV1().Backups("ns").Delete(backupName, &metav1.DeleteOptions{})
+				err := veleroclient.VeleroV1().Backups(veleroNamespace).Delete(backupName, &metav1.DeleteOptions{})
 				require.NoError(t, err, "backup=%s deletion failed, err=%v", backupName, err)
 			}
 
@@ -535,7 +552,7 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 			if len(test.existingBackups) != 0 {
 				for _, backup := range test.existingBackups {
 					pinnedBackup := backup
-					_, err := veleroclient.VeleroV1().Backups("ns").Create(&pinnedBackup)
+					_, err := veleroclient.VeleroV1().Backups(veleroNamespace).Create(&pinnedBackup)
 					require.NoError(t, err, "creating existing backup failed, err=%v", err)
 				}
 			}
@@ -544,7 +561,7 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 			cache.WaitForCacheSync(ctx.Done(), veleroFakeInformer.Velero().V1().Backups().Informer().HasSynced)
 
 			backupper := NewDMaaSBackupper(
-				"ns",
+				veleroNamespace,
 				client,
 				veleroclient.VeleroV1(),
 				veleroFakeInformer.Velero().V1(),
@@ -554,8 +571,12 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 			sort.Sort(sort.Reverse(ScheduleByCreationTimestamp(test.dmaasbackup.Status.VeleroSchedules)))
 			bkpper, ok := backupper.(*dmaasBackup)
 			assert.True(t, ok, "failed to parse dmaasbackupper")
-
 			bkpper.logger = logrus.New()
+
+			if test.backupListError {
+				// assign mock backuplister to inject error on List API
+				bkpper.backupLister = &fakeBackupLister{}
+			}
 
 			err := bkpper.cleanupPeriodicSchedule(test.dmaasbackup)
 			require.NoError(t, err, "cleanup returned error err=%v", err)
@@ -568,13 +589,18 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 			assert.Equal(t, false, bkpper.shouldRequeue, "Requeue validation failed")
 
 			wg.Wait()
-			require.NoError(t, verifyBackups(veleroclient, test.expectedBackups), "backup verification failed")
+			require.NoError(t,
+				verifyBackups(
+					veleroclient.VeleroV1().Backups(veleroNamespace),
+					test.expectedBackups,
+				),
+				"backup verification failed")
 		})
 	}
 }
 
-func verifyBackups(clientset *velerofake.Clientset, expectedBackups []velerov1api.Backup) error {
-	existingBackups, err := clientset.VeleroV1().Backups("ns").List(metav1.ListOptions{})
+func verifyBackups(backupInterface velerov1.BackupInterface, expectedBackups []velerov1api.Backup) error {
+	existingBackups, err := backupInterface.List(metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to list backups")
 	}
@@ -599,4 +625,15 @@ func verifyBackups(clientset *velerofake.Clientset, expectedBackups []velerov1ap
 		}
 	}
 	return nil
+}
+
+// fakeBackupLister is mocking of velero backuplister interface to return error
+type fakeBackupLister struct{}
+
+func (*fakeBackupLister) List(selector labels.Selector) ([]*velerov1api.Backup, error) {
+	return []*velerov1api.Backup{}, errors.New("internal Error")
+}
+
+func (*fakeBackupLister) Get(name string) (*velerov1api.Backup, error) {
+	return nil, errors.New("internal Error")
 }
