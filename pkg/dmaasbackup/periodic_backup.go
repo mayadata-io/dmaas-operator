@@ -22,7 +22,6 @@ import (
 	velerobackup "github.com/vmware-tanzu/velero/pkg/backup"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
@@ -130,6 +129,19 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 		return nil
 	}
 
+	if !dbkp.Spec.PeriodicFullBackupCfg.DisableSuccessfulBackupRetain {
+		successfulScheduleIdx, err := d.getSuccessfulScheduleIdx(dbkp)
+		if err != nil {
+			d.logger.Debugf("Failed to get successful backup index err=%v",
+				err)
+			return nil
+		}
+
+		if requiredSchedule <= successfulScheduleIdx {
+			requiredSchedule = successfulScheduleIdx + 1
+		}
+	}
+
 	defer d.logger.Debug("Cleanup completed for periodic schedule")
 
 	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule:] {
@@ -138,12 +150,7 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 			continue
 		}
 
-		backupList, err := d.backupLister.List(
-			labels.SelectorFromSet(map[string]string{
-				v1alpha1.DMaaSBackupLabelKey:  dbkp.Name,
-				velerov1api.ScheduleNameLabel: schedule.ScheduleName,
-			}),
-		)
+		backupList, err := d.listScheduledBackups(dbkp, schedule.ScheduleName)
 		if err != nil {
 			d.logger.Warningf("failed to list backup for schedule=%s err=%s, will retry in next sync",
 				schedule.ScheduleName,
@@ -172,4 +179,31 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 		// are deleted
 	}
 	return nil
+}
+
+// getSuccessfulScheduleIdx return index for the veleroschedules having successful backup for the given dmaasbackup
+// if no successful backup exists then it returns error
+func (d *dmaasBackup) getSuccessfulScheduleIdx(dbkp *v1alpha1.DMaaSBackup) (int, error) {
+	for idx, schedule := range dbkp.Status.VeleroSchedules {
+		if schedule.Status == v1alpha1.Erased {
+			continue
+		}
+
+		backupList, err := d.listScheduledBackups(dbkp, schedule.ScheduleName)
+		if err != nil {
+			d.logger.Warningf("failed to list backup for schedule=%s err=%s, will retry in next sync",
+				schedule.ScheduleName,
+				err,
+			)
+			continue
+		}
+
+		for _, bkp := range backupList {
+			if bkp.Status.Phase == velerov1api.BackupPhaseCompleted {
+				return idx, nil
+			}
+		}
+	}
+
+	return 0, errors.New("no successful backup present")
 }

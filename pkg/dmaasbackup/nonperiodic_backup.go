@@ -20,7 +20,6 @@ import (
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	velerobackup "github.com/vmware-tanzu/velero/pkg/backup"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
@@ -108,6 +107,8 @@ func (b byBackupCreationTimeStamp) Less(i, j int) bool {
 func (d *dmaasBackup) cleanupNonPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error {
 	d.logger.Debug("Processing cleanup for non-periodic schedule")
 
+	retainCount := dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold
+
 	// get schedule info
 	schedule := getLatestVeleroSchedule(dbkp)
 	if schedule == nil {
@@ -121,44 +122,89 @@ func (d *dmaasBackup) cleanupNonPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) err
 		return nil
 	}
 
-	backupList, err := d.backupLister.List(
-		labels.SelectorFromSet(map[string]string{
-			v1alpha1.DMaaSBackupLabelKey:  dbkp.Name,
-			velerov1api.ScheduleNameLabel: schedule.ScheduleName,
-		}),
-	)
-
+	backupList, err := d.listScheduledBackups(dbkp, schedule.ScheduleName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get list of backup for schedule=%s", schedule.ScheduleName)
+	}
+
+	if len(backupList) < retainCount {
+		d.logger.Debugf("Number of backups are %v, required %v backups to trigger cleanup",
+			len(backupList),
+			retainCount)
+		return nil
 	}
 
 	defer d.logger.Debug("Completed cleanup for non-periodic schedule")
 
 	sort.Sort(sort.Reverse(byBackupCreationTimeStamp(backupList)))
 
-	// We need to retain `fullBackupRetentionThreshold` number of backups
-	// check for completed backup count
-	var completedBackup int
+	requiredCompletedBackup := retainCount
+	completedIdx, successfulIdx := getBackupCleanupIdx(backupList, &requiredCompletedBackup)
+	if completedIdx == -1 {
+		d.logger.Debugf("Number of completed Backups is %v, required %v completed backups to trigger cleanup",
+			requiredCompletedBackup,
+			retainCount)
+		return nil
+	}
 
-	for _, backup := range backupList {
+	if !dbkp.Spec.PeriodicFullBackupCfg.DisableSuccessfulBackupRetain {
+		if successfulIdx == -1 {
+			d.logger.Debugf("No successful backup exists, cleanup skipped")
+			return nil
+		}
+
+		if completedIdx <= successfulIdx {
+			completedIdx = successfulIdx
+		}
+	}
+
+	for _, backup := range backupList[completedIdx+1:] {
+		deleteRequest := velerobackup.NewDeleteBackupRequest(backup.Name, string(backup.UID))
+		if _, err := d.deleteBackupClient.Create(deleteRequest); err != nil {
+			d.logger.Warningf("Failed to create deleteRequest for backup=%s err=%s",
+				backup.Name,
+				err,
+			)
+		}
+		d.logger.Infof("Delete request created for backup=%s", backup.Name)
+	}
+
+	return nil
+}
+
+// getBackupCleanupIdx return index for completed backup and successful backup,
+// and update retainCount with number of completedbackup required for retainCount
+// completedIdx : Index of the last completed backup for retainCount
+// successfulBackupIdx : Index of first successful backup
+func getBackupCleanupIdx(backups []*velerov1api.Backup, retainCount *int) (completedIdx, successfulBackupIdx int) {
+	if retainCount == nil {
+		return
+	}
+
+	completedIdx, successfulBackupIdx = -1, -1
+	for idx, backup := range backups {
 		switch backup.Status.Phase {
 		case "", velerov1api.BackupPhaseNew,
 			velerov1api.BackupPhaseInProgress,
 			velerov1api.BackupPhaseDeleting:
-		default:
-			completedBackup++
-		}
-		if completedBackup > dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold {
-			deleteRequest := velerobackup.NewDeleteBackupRequest(backup.Name, string(backup.UID))
-			if _, err := d.deleteBackupClient.Create(deleteRequest); err != nil {
-				d.logger.Warningf("Failed to create deleteRequest for backup=%s err=%s",
-					backup.Name,
-					err,
-				)
+		case velerov1api.BackupPhaseCompleted:
+			if successfulBackupIdx == -1 {
+				// update successfulBackupIdx
+				successfulBackupIdx = idx
 			}
-			d.logger.Infof("Delete request created for backup=%s", backup.Name)
+			// successful backup is also part of completed backup
+			fallthrough
+		default:
+			*retainCount--
+			if *retainCount <= 0 && completedIdx == -1 {
+				completedIdx = idx
+			}
+		}
+
+		if successfulBackupIdx != -1 && completedIdx != -1 {
+			// got both the index, no need to check further
+			break
 		}
 	}
-
-	return nil
+	return
 }
