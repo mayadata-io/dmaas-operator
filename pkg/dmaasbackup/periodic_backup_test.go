@@ -22,15 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
-	core "k8s.io/client-go/testing"
-
-	"k8s.io/client-go/tools/cache"
-
-	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
-	"github.com/mayadata-io/dmaas-operator/pkg/builder"
-	"github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned/fake"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +33,15 @@ import (
 	veleroinformer "github.com/vmware-tanzu/velero/pkg/generated/informers/externalversions"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	apimachineryclock "k8s.io/apimachinery/pkg/util/clock"
+	core "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
+	"github.com/mayadata-io/dmaas-operator/pkg/builder"
+	"github.com/mayadata-io/dmaas-operator/pkg/generated/clientset/versioned/fake"
 )
 
 const (
@@ -133,7 +132,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should return error on invalid crontime",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8", 1).
+				PeriodicConfig("*/8", 1, false).
 				Schedule(newTestScheduleSpec()).
 				Result(),
 			fakeTime:      "2020-06-20 06:20:00",
@@ -142,7 +141,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should reserve name if veleroschedule is empty",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8 * * * *", 1).
+				PeriodicConfig("*/8 * * * *", 1, false).
 				Schedule(newTestScheduleSpec()).
 				Result(),
 			fakeTime: "2020-06-20 06:20:00",
@@ -154,7 +153,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should not reserve name if schedule not due",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8 * * * *", 1).
+				PeriodicConfig("*/8 * * * *", 1, false).
 				Schedule(newTestScheduleSpec()).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
 				Result(),
@@ -166,7 +165,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should create schedule if schedule name is reserved",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8 * * * *", 1).
+				PeriodicConfig("*/8 * * * *", 1, false).
 				Schedule(newTestScheduleSpec()).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", "", true)).
 				Result(),
@@ -178,7 +177,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should ignore alreadyExists error on schedule creation",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8 * * * *", 1).
+				PeriodicConfig("*/8 * * * *", 1, false).
 				Schedule(newTestScheduleSpec()).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", "", true)).
 				Result(),
@@ -193,7 +192,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should not delete old active schedule on schedule creation failure",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8 * * * *", 1).
+				PeriodicConfig("*/8 * * * *", 1, false).
 				Schedule(newTestScheduleSpec()).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", "", true)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:12:00", v1alpha1.Active, false)).
@@ -210,7 +209,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should delete existing active schedule on new schedule creation",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8 * * * *", 1).
+				PeriodicConfig("*/8 * * * *", 1, false).
 				Schedule(newTestScheduleSpec()).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", "", true)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:12:00", v1alpha1.Active, false)).
@@ -224,7 +223,7 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 		{
 			name: "should not update old active schedule status on deletion failure",
 			backup: dbkpbuilder().
-				PeriodicConfig("*/8 * * * *", 1).
+				PeriodicConfig("*/8 * * * *", 1, false).
 				Schedule(newTestScheduleSpec()).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", "", true)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:12:00", v1alpha1.Active, false)).
@@ -341,17 +340,17 @@ func TestProcessPeriodicConfigSchedule(t *testing.T) {
 }
 
 func TestCleanupPeriodicSchedule(t *testing.T) {
-	dbkpbuilder := func(retentionCount int) *builder.DMaaSBackupBuilder {
+	dbkpbuilder := func(retentionCount int, disableCheck bool) *builder.DMaaSBackupBuilder {
 		return builder.ForDMaaSBackup(dmaasNamespace, "name").
-			PeriodicConfig("*/8 * * * *", retentionCount)
+			PeriodicConfig("*/8 * * * *", retentionCount, disableCheck)
 	}
 
-	// generateBackup will return backup object for the given schedule time
-	generateBackup := func(scheduleTime, prefix string) velerov1api.Backup {
+	// generateBackup will return backup object for the given schedule time with status completed
+	generateBackup := func(scheduleTime, prefix string) *velerobuilder.BackupBuilder {
 		testTime, err := time.Parse("2006-01-02 15:04:05", scheduleTime)
 		require.NoError(t, err, "Failed to parse schedule time: %v", err)
 
-		return *velerobuilder.ForBackup(veleroNamespace, "name-"+testTime.Format("20060102150405")+"-"+prefix).
+		return velerobuilder.ForBackup(veleroNamespace, "name-"+testTime.Format("20060102150405")+"-"+prefix).
 			FromSchedule(&velerov1api.Schedule{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: veleroNamespace,
@@ -364,120 +363,188 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 					// add label using key, value
 					v1alpha1.DMaaSBackupLabelKey, "name",
 				),
-			).
-			Result()
+			).Phase(velerov1api.BackupPhaseCompleted)
 	}
 
 	tests := []struct {
 		name                   string
 		dmaasbackup            *v1alpha1.DMaaSBackup
-		existingBackups        []velerov1api.Backup
+		existingBackups        []*velerov1api.Backup
 		backupDeleteError      bool
 		backupListError        bool
 		expectedVeleroSchedule []v1alpha1.VeleroScheduleDetails // compare only status and name, excluding reserved one
-		expectedBackups        []velerov1api.Backup
+		expectedBackups        []*velerov1api.Backup
 	}{
 		{
 			name: "should not delete backup if required schedule count is not reached",
-			dmaasbackup: dbkpbuilder(3).
+			dmaasbackup: dbkpbuilder(3, false).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
 				Result(),
-			existingBackups: []velerov1api.Backup{
+			existingBackups: []*velerov1api.Backup{
 				// we are having two veleroschedules
 				// add 1 backups for active schedule
-				generateBackup("2020-06-20 06:20:00", "b1"),
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
 
 				// add 1 backups for deleted schedule
-				generateBackup("2020-06-20 06:10:00", "b1"),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
 			},
 			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
 				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
 				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
 			},
-			expectedBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
 			},
 		},
 		{
 			name: "should delete backup if retentionCount limit is reached",
-			dmaasbackup: dbkpbuilder(1).
+			dmaasbackup: dbkpbuilder(1, false).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
 				Result(),
-			existingBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
-				generateBackup("2020-06-20 06:00:00", "b1"),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
 			},
 			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
 				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
 				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
 				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false),
 			},
-			expectedBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
-				//	generateBackup("2020-06-20 06:00:00", "b1"),
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
 			},
 		},
 		{
-			name: "should update last schedule status as Erased if all backups are deleted",
-			dmaasbackup: dbkpbuilder(1).
+			name: "should not delete last successful schedule's backup if retained one doesn't have successful backup",
+			dmaasbackup: dbkpbuilder(1, false).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
 				Result(),
-			existingBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Phase(velerov1api.BackupPhaseInProgress).Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
+			},
+			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
+				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
+				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
+				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false),
+			},
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Phase(velerov1api.BackupPhaseInProgress).Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
+			},
+		},
+		{
+			name: "should delete last successful schedule's backup if retained one doesn't have successful backup, if DisableSuccessfulBackupRetain set",
+			dmaasbackup: dbkpbuilder(1, true).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
+				Result(),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Phase(velerov1api.BackupPhaseInProgress).Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
+			},
+			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
+				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
+				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
+				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false),
+			},
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Phase(velerov1api.BackupPhaseInProgress).Result(),
+			},
+		},
+		{
+			name: "should update last schedule status as Erased if all backups are deleted",
+			dmaasbackup: dbkpbuilder(1, false).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
+				Result(),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
 			},
 			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
 				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
 				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
 				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Erased, false),
 			},
-			expectedBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
 			},
 		},
 		{
 			name: "should not delete backups for schedule if schedule is not deleted",
-			dmaasbackup: dbkpbuilder(1).
+			dmaasbackup: dbkpbuilder(1, false).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", "", false)).
 				Result(),
-			existingBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
-				generateBackup("2020-06-20 06:00:00", "b1"),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
 			},
 			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
 				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
 				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
 				veleroScheduleDetails(t, "2020-06-20 06:00:00", "", false),
 			},
-			expectedBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
-				generateBackup("2020-06-20 06:00:00", "b1"),
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
+			},
+		},
+		{
+			name: "should not account erased scheduled's backup for SuccessfulBackupRetain",
+			dmaasbackup: dbkpbuilder(1, false).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Erased, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 05:00:00", v1alpha1.Deleted, false)).
+				Result(),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Phase(velerov1api.BackupPhaseCompleted).Result(),
+			},
+			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
+				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
+				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
+				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Erased, false),
+				veleroScheduleDetails(t, "2020-06-20 05:00:00", v1alpha1.Deleted, false),
+			},
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Phase(velerov1api.BackupPhaseFailed).Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Phase(velerov1api.BackupPhaseCompleted).Result(),
 			},
 		},
 		{
 			name: "should not delete backup if creation of deletionrequest failed",
-			dmaasbackup: dbkpbuilder(1).
+			dmaasbackup: dbkpbuilder(1, false).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
 				Result(),
-			existingBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
-				generateBackup("2020-06-20 06:00:00", "b1"),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
 			},
 			backupDeleteError: true,
 			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
@@ -485,22 +552,22 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
 				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false),
 			},
-			expectedBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
-				generateBackup("2020-06-20 06:00:00", "b1"),
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
+				generateBackup("2020-06-20 06:00:00", "b1").Result(),
 			},
 		},
 		{
 			name: "should not update schedule status if backup list failed",
-			dmaasbackup: dbkpbuilder(1).
+			dmaasbackup: dbkpbuilder(1, false).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
 				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
 				Result(),
-			existingBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
 			},
 			backupListError: true,
 			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
@@ -508,9 +575,31 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
 				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false),
 			},
-			expectedBackups: []velerov1api.Backup{
-				generateBackup("2020-06-20 06:20:00", "b1"),
-				generateBackup("2020-06-20 06:10:00", "b1"),
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
+			},
+		},
+		{
+			name: "should not update schedule status if backup list failed, if DisableSuccessfulBackupRetain set",
+			dmaasbackup: dbkpbuilder(1, true).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false)).
+				WithVeleroSchedules(veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false)).
+				Result(),
+			existingBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
+			},
+			backupListError: true,
+			expectedVeleroSchedule: []v1alpha1.VeleroScheduleDetails{
+				veleroScheduleDetails(t, "2020-06-20 06:20:00", v1alpha1.Active, false),
+				veleroScheduleDetails(t, "2020-06-20 06:10:00", v1alpha1.Deleted, false),
+				veleroScheduleDetails(t, "2020-06-20 06:00:00", v1alpha1.Deleted, false),
+			},
+			expectedBackups: []*velerov1api.Backup{
+				generateBackup("2020-06-20 06:20:00", "b1").Result(),
+				generateBackup("2020-06-20 06:10:00", "b1").Result(),
 			},
 		},
 	}
@@ -551,8 +640,7 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 			// Create required backups
 			if len(test.existingBackups) != 0 {
 				for _, backup := range test.existingBackups {
-					pinnedBackup := backup
-					_, err := veleroclient.VeleroV1().Backups(veleroNamespace).Create(&pinnedBackup)
+					_, err := veleroclient.VeleroV1().Backups(veleroNamespace).Create(backup)
 					require.NoError(t, err, "creating existing backup failed, err=%v", err)
 				}
 			}
@@ -599,7 +687,7 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 	}
 }
 
-func verifyBackups(backupInterface velerov1.BackupInterface, expectedBackups []velerov1api.Backup) error {
+func verifyBackups(backupInterface velerov1.BackupInterface, expectedBackups []*velerov1api.Backup) error {
 	existingBackups, err := backupInterface.List(metav1.ListOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to list backups")

@@ -14,9 +14,10 @@ limitations under the License.
 package builder
 
 import (
-	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 	velerov1 "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
 
 // DMaaSBackupBuilder build dmaasbackup object
@@ -70,10 +71,11 @@ func (d *DMaaSBackupBuilder) Finalizer(finalizers ...string) *DMaaSBackupBuilder
 }
 
 // PeriodicConfig add the given periodic backup configuration to dmaasbackup
-func (d *DMaaSBackupBuilder) PeriodicConfig(cronTime string, retentionCount int) *DMaaSBackupBuilder {
+func (d *DMaaSBackupBuilder) PeriodicConfig(cronTime string, retentionCount int, disableSuccessfulBackupRetain bool) *DMaaSBackupBuilder {
 	d.object.Spec.PeriodicFullBackupCfg = v1alpha1.PeriodicFullBackupConfig{
-		FullBackupRetentionThreshold: retentionCount,
-		CronTime:                     cronTime,
+		FullBackupRetentionThreshold:  retentionCount,
+		CronTime:                      cronTime,
+		DisableSuccessfulBackupRetain: disableSuccessfulBackupRetain,
 	}
 	return d
 }
