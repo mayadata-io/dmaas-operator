@@ -139,26 +139,34 @@ func (d *dmaasBackup) cleanupNonPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) err
 	sort.Sort(sort.Reverse(byBackupCreationTimeStamp(backupList)))
 
 	requiredCompletedBackup := retainCount
-	completedIdx, successfulIdx := getBackupCleanupIdx(backupList, &requiredCompletedBackup)
-	if completedIdx == -1 {
+
+	// get index for successful backup and last retainCount'th completed backup
+	retainIdx, successfulIdx := getBackupCleanupIdx(backupList, &requiredCompletedBackup)
+	if retainIdx == -1 {
+		// backup list doesn't have 'retainCount' number of completed backup
 		d.logger.Debugf("Number of completed Backups is %v, required %v completed backups to trigger cleanup",
-			requiredCompletedBackup,
+			retainCount-requiredCompletedBackup,
 			retainCount)
 		return nil
 	}
 
-	if !dbkp.Spec.PeriodicFullBackupCfg.DisableSuccessfulBackupRetain {
+	if !dbkp.Spec.PeriodicFullBackupCfg.DisableSuccessfulBackupCheckForRetention {
 		if successfulIdx == -1 {
+			// backup list doesn't have any successful backup
 			d.logger.Debugf("No successful backup exists, cleanup skipped")
 			return nil
 		}
 
-		if completedIdx <= successfulIdx {
-			completedIdx = successfulIdx
+		if retainIdx <= successfulIdx {
+			d.logger.Infof("Updating retain backup index to %v, to retain successful backup",
+				successfulIdx)
+
+			// Since we need to retain successful backup, update retainIdx with successfulIdx
+			retainIdx = successfulIdx
 		}
 	}
 
-	for _, backup := range backupList[completedIdx+1:] {
+	for _, backup := range backupList[retainIdx+1:] {
 		deleteRequest := velerobackup.NewDeleteBackupRequest(backup.Name, string(backup.UID))
 		if _, err := d.deleteBackupClient.Create(deleteRequest); err != nil {
 			d.logger.Warningf("Failed to create deleteRequest for backup=%s err=%s",
@@ -166,7 +174,7 @@ func (d *dmaasBackup) cleanupNonPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) err
 				err,
 			)
 		}
-		d.logger.Infof("Delete request created for backup=%s", backup.Name)
+		d.logger.Infof("DeleteBackupRequest created for backup=%s", backup.Name)
 	}
 
 	return nil

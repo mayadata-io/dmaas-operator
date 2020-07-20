@@ -114,22 +114,23 @@ func getNextDue(cr cron.Schedule, schedule *v1alpha1.VeleroScheduleDetails, now 
 func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error {
 	d.logger.Debug("Processing cleanup for periodic schedule")
 
-	// delete backups for schedule as per fullBackupRetentionThreshold
+	// delete backups for schedule as per fullBackupRetentionThreshold.
 	// we need to retain the backups created by current active schedule and
 	// last 'FullBackupRetentionThreshold' number of schedules.
-	requiredSchedule := dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold + 1
+	requiredSchedule := dbkp.Spec.PeriodicFullBackupCfg.FullBackupRetentionThreshold
 
-	// scheduleCount = deleted schedules + active schedule(=1)
-	scheduleCount := getDeletedScheduleCount(dbkp) + 1
+	deletedScheduleCount := getDeletedScheduleCount(dbkp)
 
-	if scheduleCount < requiredSchedule {
-		d.logger.Debugf("Number of schedules are %v, required %v schedules to trigger cleanup",
-			len(dbkp.Status.VeleroSchedules),
+	if deletedScheduleCount < requiredSchedule {
+		d.logger.Debugf("Number of deleted schedules are %v, required %v schedules to trigger cleanup",
+			deletedScheduleCount,
 			requiredSchedule)
 		return nil
 	}
 
-	if !dbkp.Spec.PeriodicFullBackupCfg.DisableSuccessfulBackupRetain {
+	if !dbkp.Spec.PeriodicFullBackupCfg.DisableSuccessfulBackupCheckForRetention {
+		// dbkp have number of veleroschedules created according to periodicFullBackup config
+		// get veleroschedule index, from dbkp.VeleroSchedules, having successful backup
 		successfulScheduleIdx, err := d.getSuccessfulScheduleIdx(dbkp)
 		if err != nil {
 			d.logger.Debugf("Failed to get successful backup index err=%v",
@@ -137,14 +138,21 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 			return nil
 		}
 
-		if requiredSchedule <= successfulScheduleIdx {
-			requiredSchedule = successfulScheduleIdx + 1
+		if requiredSchedule < successfulScheduleIdx {
+			d.logger.Infof("Updating requiredSchedule to %v, to retain successful backup",
+				successfulScheduleIdx)
+
+			// we don't have any successful backup in requiredSchedule schedules.
+			// To retain schedule having successful backup, set requiredSchedule
+			// to successfulScheduleIdx.
+			requiredSchedule = successfulScheduleIdx
 		}
 	}
 
 	defer d.logger.Debug("Cleanup completed for periodic schedule")
 
-	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule:] {
+	// since we need to retain active schedule, We will perform cleanup from (requiredSchedule+1) schedule
+	for index, schedule := range dbkp.Status.VeleroSchedules[requiredSchedule+1:] {
 		if schedule.Status != v1alpha1.Deleted {
 			// schedule is not deleted, skip it
 			continue
@@ -161,7 +169,10 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 
 		if len(backupList) == 0 {
 			// no backup exists for schedule
-			dbkp.Status.VeleroSchedules[requiredSchedule+index].Status = v1alpha1.Erased
+			dbkp.Status.VeleroSchedules[requiredSchedule+index+1].Status = v1alpha1.Erased
+			d.logger.Infof("Status of VeleroSchedule=%s updated to '%v'",
+				schedule.ScheduleName,
+				v1alpha1.Erased)
 			continue
 		}
 
@@ -175,6 +186,9 @@ func (d *dmaasBackup) cleanupPeriodicSchedule(dbkp *v1alpha1.DMaaSBackup) error 
 				)
 			}
 		}
+
+		d.logger.Infof("DeleteBackupRequests created for %s's backups", schedule.ScheduleName)
+
 		// setting status will be handle by next sync when all the backups for this schedules
 		// are deleted
 	}
