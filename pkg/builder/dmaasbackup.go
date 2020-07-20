@@ -71,11 +71,11 @@ func (d *DMaaSBackupBuilder) Finalizer(finalizers ...string) *DMaaSBackupBuilder
 }
 
 // PeriodicConfig add the given periodic backup configuration to dmaasbackup
-func (d *DMaaSBackupBuilder) PeriodicConfig(cronTime string, retentionCount int, disableSuccessfulBackupRetain bool) *DMaaSBackupBuilder {
+func (d *DMaaSBackupBuilder) PeriodicConfig(cronTime string, retentionCount int, disableSuccessfulBackupCheckForRetention bool) *DMaaSBackupBuilder {
 	d.object.Spec.PeriodicFullBackupCfg = v1alpha1.PeriodicFullBackupConfig{
-		FullBackupRetentionThreshold:  retentionCount,
-		CronTime:                      cronTime,
-		DisableSuccessfulBackupRetain: disableSuccessfulBackupRetain,
+		FullBackupRetentionThreshold:             retentionCount,
+		CronTime:                                 cronTime,
+		DisableSuccessfulBackupCheckForRetention: disableSuccessfulBackupCheckForRetention,
 	}
 	return d
 }
