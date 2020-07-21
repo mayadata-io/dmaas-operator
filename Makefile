@@ -76,7 +76,7 @@ ifeq ($(TAG_LATEST), true)
 endif
 
 test:
-	@go test -race -cover -coverprofile=coverage.out -covermode=atomic ./cmd/... ./pkg/...
+	@go test -cover -coverprofile=coverage.out -covermode=atomic ./cmd/... ./pkg/...
 
 clean:
 	@rm -rf .go _output
