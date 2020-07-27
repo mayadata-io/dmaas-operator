@@ -30,7 +30,7 @@ before_script:
   - make update || travis_terminate 1;
 
 script:
-  - make test || travis_terminate 1;
+  - travis_wait 20 make test || travis_terminate 1;
   - make build && make image || travis_terminate 1;
   - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
      docker login -u "$DOCKER_USER" -p "$DOCKER_PASS" && make push-image || travis_terminate 1;
