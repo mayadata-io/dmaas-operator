@@ -107,7 +107,7 @@ func (d *dmaasBackupController) processBackup(key string) (bool, error) {
 		return shouldRequeue, nil
 	}
 
-	original, err := d.lister.DMaaSBackups(ns).Get(name)
+	original, err := d.dmaasClient.MayadataV1alpha1().DMaaSBackups(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Debug("dmaasbackup not found")
