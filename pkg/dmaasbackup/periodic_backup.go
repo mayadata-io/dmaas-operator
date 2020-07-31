@@ -45,6 +45,7 @@ func (d *dmaasBackup) processPeriodicConfigSchedule(obj *v1alpha1.DMaaSBackup) e
 				return err
 			}
 		}
+		d.logger.Infof("Schedule=%s created", emptySchedule.ScheduleName)
 		updateEmptyQueuedVeleroSchedule(obj, emptySchedule, newSchedule)
 
 		lastSchedule := getPreviousVeleroSchedule(obj)
