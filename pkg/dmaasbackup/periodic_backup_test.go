@@ -645,9 +645,6 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 				}
 			}
 
-			go veleroFakeInformer.Start(ctx.Done())
-			cache.WaitForCacheSync(ctx.Done(), veleroFakeInformer.Velero().V1().Backups().Informer().HasSynced)
-
 			backupper := NewDMaaSBackupper(
 				veleroNamespace,
 				client,
@@ -655,6 +652,9 @@ func TestCleanupPeriodicSchedule(t *testing.T) {
 				veleroFakeInformer.Velero().V1(),
 				apimachineryclock.NewFakeClock(time.Time{}),
 			)
+
+			veleroFakeInformer.Start(ctx.Done())
+			cache.WaitForCacheSync(ctx.Done(), veleroFakeInformer.Velero().V1().Backups().Informer().HasSynced)
 
 			sort.Sort(sort.Reverse(ScheduleByCreationTimestamp(test.dmaasbackup.Status.VeleroSchedules)))
 			bkpper, ok := backupper.(*dmaasBackup)
