@@ -17,6 +17,7 @@ import (
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	velerobuilder "github.com/vmware-tanzu/velero/pkg/builder"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
 
 	"github.com/mayadata-io/dmaas-operator/pkg/apis/mayadata.io/v1alpha1"
 )
@@ -83,4 +84,13 @@ func (d *dmaasBackup) cleanupOldSchedule(dbkp *v1alpha1.DMaaSBackup) error {
 	}
 
 	return d.cleanupPeriodicSchedule(dbkp)
+}
+
+func (d *dmaasBackup) listScheduledBackups(dbkp *v1alpha1.DMaaSBackup, scheduleName string) ([]*velerov1api.Backup, error) {
+	return d.backupLister.List(
+		labels.SelectorFromSet(map[string]string{
+			v1alpha1.DMaaSBackupLabelKey:  dbkp.Name,
+			velerov1api.ScheduleNameLabel: scheduleName,
+		}),
+	)
 }

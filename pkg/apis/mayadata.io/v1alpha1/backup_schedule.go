@@ -80,6 +80,10 @@ type PeriodicFullBackupConfig struct {
 
 	// FullBackupRetentionThreshold represents the number of full backup needs to be retained
 	FullBackupRetentionThreshold int `json:"fullBackupRetentionThreshold"`
+
+	// DisableSuccessfulBackupCheckForRetention disable the checks to retain successful backup
+	// from the schedules.
+	DisableSuccessfulBackupCheckForRetention bool `json:"disableSuccessfulBackupCheckForRetention,omitempty"`
 }
 
 // DMaaSBackupPhase represents the phase of DMaaSBackup

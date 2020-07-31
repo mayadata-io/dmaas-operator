@@ -44,6 +44,10 @@ spec:
                   description: CronTime is cron expression defining when to run full
                     backup
                   type: string
+                disableSuccessfulBackupCheckForRetention:
+                  description: DisableSuccessfulBackupCheckForRetention disable the
+                    checks to retain successful backup from the schedules.
+                  type: boolean
                 fullBackupRetentionThreshold:
                   description: FullBackupRetentionThreshold represents the number
                     of full backup needs to be retained
