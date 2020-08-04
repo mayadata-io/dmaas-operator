@@ -76,7 +76,7 @@ ifeq ($(TAG_LATEST), true)
 endif
 
 test:
-	@go test -race -timeout=20m -cover -coverprofile=coverage.out -covermode=atomic ./cmd/... ./pkg/...
+	@go test -race -timeout=20m -cover -coverprofile=coverage.txt -covermode=atomic ./cmd/... ./pkg/...
 
 clean:
 	@rm -rf .go _output

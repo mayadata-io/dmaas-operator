@@ -45,3 +45,5 @@ branches:
   except:
     - /^*-v[0-9]/
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
