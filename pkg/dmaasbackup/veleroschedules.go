@@ -29,6 +29,14 @@ type ScheduleByCreationTimestamp []v1alpha1.VeleroScheduleDetails
 func (o ScheduleByCreationTimestamp) Len() int      { return len(o) }
 func (o ScheduleByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
 func (o ScheduleByCreationTimestamp) Less(i, j int) bool {
+	if o[i].CreationTimestamp == nil || (*o[i].CreationTimestamp).IsZero() {
+		return true
+	}
+
+	if o[j].CreationTimestamp == nil || (*o[j].CreationTimestamp).IsZero() {
+		return false
+	}
+
 	if (*o[i].CreationTimestamp).Equal(o[j].CreationTimestamp) {
 		return o[i].ScheduleName < o[j].ScheduleName
 	}
