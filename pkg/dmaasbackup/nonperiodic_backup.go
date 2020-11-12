@@ -69,6 +69,8 @@ func (d *dmaasBackup) processNonperiodicConfigSchedule(dbkp *v1alpha1.DMaaSBacku
 				return err
 			}
 		}
+
+		d.logger.Infof("Schedule=%s created", emptySchedule.ScheduleName)
 		updateEmptyQueuedVeleroSchedule(dbkp, emptySchedule, newSchedule)
 		return nil
 	}
