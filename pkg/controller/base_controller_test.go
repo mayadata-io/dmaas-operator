@@ -141,9 +141,9 @@ func TestSync(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	_ = informer.Mayadata().V1alpha1().DMaaSBackups().Informer().GetStore().Add(dmaasbackup)
-
 	go informer.Start(ctx.Done())
+
+	_ = client.Tracker().Add(dmaasbackup)
 	go func() {
 		_ = c.Run(ctx)
 	}()
